@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from family_companion.schemas import (
     ChatResponse,
@@ -20,6 +21,14 @@ app = FastAPI(
     title="Unibase Family Companion",
     description="链上家庭陪伴AI：每个家庭拥有独立的长期记忆与画像。",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

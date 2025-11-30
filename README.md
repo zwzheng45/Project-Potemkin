@@ -27,6 +27,23 @@ uvicorn family_companion.server:app --host 0.0.0.0 --port 8000
 # 或 python -m family_companion
 ```
 
+## Web 前端 Demo（Hackathon 展示 UI）
+- 位置：`frontend/`，基于 **Vite + React + Tailwind + React Query** 构建，包含家庭注册、对话、记忆快照三个核心板块。
+- 依赖：Node.js 18+。
+
+```bash
+cd frontend
+npm install          # 首次安装依赖
+npm run dev          # 默认服务在 http://localhost:5173
+
+# 构建
+npm run build
+```
+
+- 默认会请求 `http://localhost:8000`，如需部署到其它 host，可在 `.env` 或运行命令时设置 `VITE_API_BASE_URL`。
+- FastAPI 已开启 CORS，可直接在浏览器调试。
+- 记得先启动后端服务，前端首页会实时显示 `/health` 状态与家庭数量。
+
 ## API 示例
 注册家庭（可自定义 family_id，不填则自动生成 slug）：
 ```bash
