@@ -118,7 +118,7 @@ function App() {
       } catch {
         return {
           family_id: familyId,
-          reply: `[Mock] 收到: ${content}`,
+          reply: `[Mock] Received: ${content}`,
           memory: {
             stm: ['Mock STM 1', 'Mock STM 2'],
             ltm: ['Mock LTM Summary'],
@@ -161,7 +161,7 @@ function App() {
   const handleCreateFamily = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!familyForm.name.trim()) {
-      setFormError('请输入家庭名称')
+      setFormError('Please enter a family name')
       return
     }
     createFamilyMutation.mutate({
@@ -250,7 +250,7 @@ function App() {
                     <textarea
                       className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
                       rows={2}
-                      placeholder="家庭简介 (可选)"
+                      placeholder="Family summary (optional)"
                       value={familyForm.description}
                       onChange={(e) =>
                         setFamilyForm((prev) => ({ ...prev, description: e.target.value }))
@@ -260,7 +260,7 @@ function App() {
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                      placeholder="ID (可选)"
+                      placeholder="ID (optional)"
                       value={familyForm.family_id}
                       onChange={(e) =>
                         setFamilyForm((prev) => ({ ...prev, family_id: e.target.value }))
