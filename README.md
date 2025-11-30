@@ -7,6 +7,7 @@
 - **自动长期记忆**：`LTMemory` 会把 16 条对话自动汇总为长期记忆与家庭画像，并可同步到 Membase Hub。
 - **链上权限与记忆主权**：当设置 BNB Testnet 钱包后，会为每个家庭在合约中创建空间并为服务 Agent 购买权限。
 - **跨设备/跨平台互通**：Membase Hub + 本地持久化，方便后续在手机、网页或第三方 Agent 中复用。
+- **多语言陪伴**：注册家庭时可指定首选语言（如 `zh/en/es/fr/ja`），所有回复按该语言输出，输入支持多语言混合。
 - **开箱即用的 FastAPI**：提供家庭注册、聊天、记忆快照 API，可直接跑一个 demo。
 
 ## 快速开始
@@ -27,12 +28,15 @@ uvicorn family_companion.server:app --host 0.0.0.0 --port 8000
 # 或 python -m family_companion
 ```
 
+4) 多语言
+- 注册家庭时传入 `language`（ISO 简码，如 `zh`/`en`/`es`/`fr`/`ja`），服务会按该语言回复。
+
 ## API 示例
 注册家庭（可自定义 family_id，不填则自动生成 slug）：
 ```bash
 curl -X POST http://localhost:8000/families \
   -H "Content-Type: application/json" \
-  -d '{"name":"Li 家庭","description":"喜欢周末露营，孩子 8 岁。"}'
+  -d '{"name":"Li 家庭","description":"喜欢周末露营，孩子 8 岁。","language":"zh"}'
 ```
 
 聊天并写入记忆：

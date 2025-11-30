@@ -18,6 +18,7 @@ class FamilyAgent:
     family_id: str
     name: str
     description: str
+    language: str
     memory: FamilyMemoryManager
     chain: FamilyChainAdapter
     client: OpenAI = field(init=False)
@@ -44,6 +45,7 @@ class FamilyAgent:
             "输出要温暖、具体，并给出可执行的小建议。"
             f"当前家庭说明: {self.description}。"
             "可以结合长期记忆、家庭画像和最新上下文回答。"
+            f"请使用家庭首选语言({self.language})输出。"
         )
 
         completion = self.client.chat.completions.create(
@@ -76,4 +78,5 @@ class FamilyAgent:
             "family_id": self.family_id,
             "name": self.name,
             "description": self.description,
+            "language": self.language,
         }

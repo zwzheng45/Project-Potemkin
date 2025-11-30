@@ -36,6 +36,7 @@ class FamilyService:
                 family_id=family_id,
                 name=meta.get("name", family_id),
                 description=meta.get("description", ""),
+                language=meta.get("language", "zh"),
                 memory=self.memory,
                 chain=self.chain,
             )
@@ -48,6 +49,7 @@ class FamilyService:
         description: str = "",
         family_id: Optional[str] = None,
         task_price: Optional[int] = None,
+        language: str = "zh",
     ) -> FamilyAgent:
         fid = family_id or _slugify(name)
         if fid in self.agents:
@@ -57,6 +59,7 @@ class FamilyService:
             family_id=fid,
             name=name,
             description=description or "家庭陪伴、家务提醒、健康守护的数字小助手。",
+            language=language,
             memory=self.memory,
             chain=self.chain,
         )
@@ -66,7 +69,12 @@ class FamilyService:
 
         self.agents[fid] = agent
         self.state.upsert_family(
-            fid, {"name": name, "description": agent.description}
+            fid,
+            {
+                "name": name,
+                "description": agent.description,
+                "language": agent.language,
+            },
         )
         logger.info("Registered new family agent %s (%s)", fid, name)
         return agent

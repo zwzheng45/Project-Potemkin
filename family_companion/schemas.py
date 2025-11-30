@@ -10,6 +10,10 @@ class CreateFamilyRequest(BaseModel):
     task_price: Optional[int] = Field(
         None, description="在链上创建家庭空间的stake价格(可选)"
     )
+    language: str = Field(
+        "zh",
+        description="家庭首选语言（例如 zh/en/es/fr/ja），将用于输出与提示。",
+    )
 
 
 class MessageRequest(BaseModel):
@@ -21,6 +25,7 @@ class FamilyResponse(BaseModel):
     family_id: str
     name: str
     description: str
+    language: str
 
 
 class ChatResponse(BaseModel):
