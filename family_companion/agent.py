@@ -20,6 +20,9 @@ class FamilyAgent:
     description: str
     memory: FamilyMemoryManager
     chain: FamilyChainAdapter
+    members: List[Dict[str, str]] = field(default_factory=list)
+    task_price: Optional[int] = None
+    last_active_at: Optional[str] = None
     client: OpenAI = field(init=False)
 
     def __post_init__(self) -> None:
@@ -71,9 +74,12 @@ class FamilyAgent:
             "context_used": context_text,
         }
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> Dict[str, object]:
         return {
             "family_id": self.family_id,
             "name": self.name,
             "description": self.description,
+            "members": self.members,
+            "task_price": self.task_price,
+            "last_active_at": self.last_active_at,
         }

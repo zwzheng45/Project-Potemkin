@@ -5,6 +5,7 @@ import type {
   HealthStatus,
   MemorySnapshot,
   MessagePayload,
+  UpdateFamilyPayload,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
@@ -23,7 +24,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(detail || `Request to ${path} failed: ${response.status}`)
   }
 
-  return response.json() as Promise<T>
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  const text = await response.text()
+  return text ? (JSON.parse(text) as T) : ((undefined as unknown) as T)
 }
 
 export const api = {
@@ -33,6 +39,15 @@ export const api = {
     request('/families', {
       method: 'POST',
       body: JSON.stringify(payload),
+    }),
+  updateFamily: (familyId: string, payload: UpdateFamilyPayload): Promise<Family> =>
+    request(`/families/${familyId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  deleteFamily: (familyId: string): Promise<void> =>
+    request(`/families/${familyId}`, {
+      method: 'DELETE',
     }),
   chatWithFamily: (familyId: string, payload: MessagePayload): Promise<ChatResponse> =>
     request(`/families/${familyId}/messages`, {

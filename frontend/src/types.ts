@@ -1,7 +1,15 @@
+export type FamilyMember = {
+  name: string
+  identity: string
+}
+
 export type Family = {
   family_id: string
   name: string
   description: string
+  task_price?: number
+  members: FamilyMember[]
+  last_active_at?: string
 }
 
 export type MemorySnapshot = {
@@ -20,6 +28,8 @@ export type ChatResponse = {
 export type HealthStatus = {
   status: string
   onchain: string
+  agent_uuid?: string | null
+  families?: number
 }
 
 export type CreateFamilyPayload = {
@@ -27,6 +37,13 @@ export type CreateFamilyPayload = {
   description?: string
   family_id?: string
   task_price?: number
+  members?: FamilyMember[]
+}
+
+export type UpdateFamilyPayload = {
+  description?: string
+  task_price?: number
+  members?: FamilyMember[]
 }
 
 export type MessagePayload = {
