@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 STATE_PATH = os.path.expanduser("~/.membase/family_agents/state.json")
 
@@ -10,7 +10,7 @@ class FamilyStateStore:
 
     def __init__(self, path: str = STATE_PATH) -> None:
         self.path = path
-        self._data: Dict[str, Dict[str, str]] = {"families": {}}
+        self._data: Dict[str, Dict[str, Any]] = {"families": {}}
         self._load()
 
     def _load(self) -> None:
@@ -30,12 +30,17 @@ class FamilyStateStore:
         with open(self.path, "w", encoding="utf-8") as handle:
             json.dump(self._data, handle, ensure_ascii=False, indent=2)
 
-    def upsert_family(self, family_id: str, payload: Dict[str, str]) -> None:
+    def upsert_family(self, family_id: str, payload: Dict[str, Any]) -> None:
         self._data["families"][family_id] = payload
         self._persist()
 
-    def get_family(self, family_id: str) -> Optional[Dict[str, str]]:
+    def get_family(self, family_id: str) -> Optional[Dict[str, Any]]:
         return self._data["families"].get(family_id)
 
-    def list_families(self) -> Dict[str, Dict[str, str]]:
+    def list_families(self) -> Dict[str, Dict[str, Any]]:
         return self._data["families"]
+
+    def delete_family(self, family_id: str) -> None:
+        if family_id in self._data["families"]:
+            del self._data["families"][family_id]
+            self._persist()

@@ -1,6 +1,7 @@
 import logging
 import re
-from typing import Dict, Optional
+from datetime import datetime
+from typing import Dict, List, Optional
 
 from family_companion.agent import FamilyAgent
 from family_companion.chain import FamilyChainAdapter
@@ -62,6 +63,8 @@ class FamilyService:
             language=language,
             memory=self.memory,
             chain=self.chain,
+            members=members or [],
+            task_price=task_price,
         )
         # Prepare on-chain memory/auth when credentials exist
         self.chain.ensure_family_space(fid, price=task_price)
@@ -79,7 +82,7 @@ class FamilyService:
         logger.info("Registered new family agent %s (%s)", fid, name)
         return agent
 
-    def list_families(self) -> Dict[str, Dict[str, str]]:
+    def list_families(self) -> Dict[str, Dict[str, object]]:
         return {fid: agent.to_dict() for fid, agent in self.agents.items()}
 
     def get_family(self, family_id: str) -> FamilyAgent:
@@ -89,9 +92,50 @@ class FamilyService:
 
     def chat(self, family_id: str, sender: str, content: str) -> Dict[str, object]:
         agent = self.get_family(family_id)
-        return agent.chat(sender=sender, content=content)
+        result = agent.chat(sender=sender, content=content)
+        agent.last_active_at = datetime.utcnow().isoformat()
+        self.state.upsert_family(family_id, agent.to_dict())
+        return result
 
     def memory_snapshot(self, family_id: str) -> Dict[str, object]:
         # Ensure the family exists before exposing memories
         self.get_family(family_id)
         return self.memory.snapshot(family_id)
+
+    def update_family(
+        self,
+        family_id: str,
+        description: Optional[str] = None,
+        task_price: Optional[int] = None,
+        members: Optional[List[Dict[str, str]]] = None,
+    ) -> Dict[str, object]:
+        agent = self.get_family(family_id)
+        if description is not None:
+            agent.description = description
+        if task_price is not None:
+            agent.task_price = task_price
+            self.chain.ensure_family_space(family_id, price=task_price)
+        if members is not None:
+            agent.members = members
+        self.state.upsert_family(family_id, agent.to_dict())
+        return agent.to_dict()
+
+    def delete_family(self, family_id: str) -> None:
+        if family_id in self.agents:
+            del self.agents[family_id]
+        self.state.delete_family(family_id)
+
+    def _load_agents_from_state(self) -> None:
+        for family_id, meta in self.state.list_families().items():
+            self.agents[family_id] = FamilyAgent(
+                family_id=family_id,
+                name=meta.get("name", family_id),
+                description=meta.get("description", ""),
+                memory=self.memory,
+                chain=self.chain,
+                members=meta.get("members", []),
+                task_price=meta.get("task_price"),
+                last_active_at=meta.get("last_active_at"),
+            )
+        if self.agents:
+            logger.info("Loaded %s family agents from disk", len(self.agents))
