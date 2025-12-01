@@ -7,11 +7,9 @@ import {
   ArrowRight,
   Bot,
   ChevronLeft,
-  Info,
   Loader2,
   Plus,
   RefreshCcw,
-  Settings,
   Trash2,
   X,
 } from 'lucide-react'
@@ -80,6 +78,7 @@ type Copy = {
   chatUserBadge: string
   chatAIBadge: string
   memoryHeading: string
+  memorySubheading: string
   activeContextLabel: string
   shortTermHeading: string
   longTermHeading: string
@@ -146,6 +145,7 @@ const translations = {
     chatUserBadge: 'ME',
     chatAIBadge: 'AI',
     memoryHeading: 'Memory State',
+    memorySubheading: "View and manage the agent's memory and context.",
     activeContextLabel: 'Active Context',
     shortTermHeading: 'Short-term Memory',
     longTermHeading: 'Long-term Memory',
@@ -156,7 +156,7 @@ const translations = {
     apiFailed: 'API Failed to Fetch',
     identityUnsetLabel: 'Unset',
     conversationTabLabel: 'Conversation',
-    fileManagementTabLabel: 'File Management',
+    fileManagementTabLabel: 'Memory',
   },
   zh: {
     languageName: '中文',
@@ -210,6 +210,7 @@ const translations = {
     chatUserBadge: '我',
     chatAIBadge: '助理',
     memoryHeading: '记忆概览',
+    memorySubheading: '查看和管理智能体的记忆与上下文。',
     activeContextLabel: '当前上下文',
     shortTermHeading: '短期记忆',
     longTermHeading: '长期记忆',
@@ -220,7 +221,7 @@ const translations = {
     apiFailed: 'API 连接失败',
     identityUnsetLabel: '未设置',
     conversationTabLabel: '对话',
-    fileManagementTabLabel: '文件管理',
+    fileManagementTabLabel: '记忆',
   },
   fr: {
     languageName: 'Français',
@@ -274,6 +275,7 @@ const translations = {
     chatUserBadge: 'MOI',
     chatAIBadge: 'IA',
     memoryHeading: 'État de la mémoire',
+    memorySubheading: "Voir et gérer la mémoire et le contexte de l'agent.",
     activeContextLabel: 'Contexte actif',
     shortTermHeading: 'Mémoire court terme',
     longTermHeading: 'Mémoire long terme',
@@ -284,7 +286,7 @@ const translations = {
     apiFailed: 'API indisponible',
     identityUnsetLabel: 'Non défini',
     conversationTabLabel: 'Conversation',
-    fileManagementTabLabel: 'Gestion des fichiers',
+    fileManagementTabLabel: 'Mémoire',
   },
   de: {
     languageName: 'Deutsch',
@@ -338,6 +340,7 @@ const translations = {
     chatUserBadge: 'ICH',
     chatAIBadge: 'KI',
     memoryHeading: 'Speicherstatus',
+    memorySubheading: 'Anzeigen und Verwalten des Gedächtnisses und Kontexts des Agenten.',
     activeContextLabel: 'Aktiver Kontext',
     shortTermHeading: 'Kurzzeitgedächtnis',
     longTermHeading: 'Langzeitgedächtnis',
@@ -348,7 +351,7 @@ const translations = {
     apiFailed: 'API-Verbindung fehlgeschlagen',
     identityUnsetLabel: 'Nicht gesetzt',
     conversationTabLabel: 'Konversation',
-    fileManagementTabLabel: 'Dateiverwaltung',
+    fileManagementTabLabel: 'Speicher',
   },
   ja: {
     languageName: '日本語',
@@ -402,6 +405,7 @@ const translations = {
     chatUserBadge: '私',
     chatAIBadge: 'AI',
     memoryHeading: 'メモリー状況',
+    memorySubheading: 'エージェントの記憶とコンテキストを表示・管理します。',
     activeContextLabel: 'アクティブなコンテキスト',
     shortTermHeading: '短期メモリー',
     longTermHeading: '長期メモリー',
@@ -412,7 +416,7 @@ const translations = {
     apiFailed: 'API 接続失敗',
     identityUnsetLabel: '未設定',
     conversationTabLabel: '会話',
-    fileManagementTabLabel: 'ファイル管理',
+    fileManagementTabLabel: 'メモリー',
   },
 } as const satisfies Record<string, Copy>
 
@@ -502,12 +506,7 @@ function App() {
   const [chatError, setChatError] = useState<string | null>(null)
   const [globalError, setGlobalError] = useState<string | null>(null)
   const [shouldShowIntro, setShouldShowIntro] = useState(false)
-  const [isEditingFamily, setIsEditingFamily] = useState(false)
-  const [familyEditForm, setFamilyEditForm] = useState({
-    description: '',
-    task_price: '',
-  })
-  const [dashboardView, setDashboardView] = useState<'chat' | 'files'>('chat')
+  const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
 
   useEffect(() => {
@@ -519,26 +518,18 @@ function App() {
   const memorySections: Array<{
     key: keyof MemorySnapshot
     label: string
-    accent: string
-    dot: string
   }> = [
     {
       key: 'stm',
       label: copy.shortTermHeading,
-      accent: 'from-amber-50 to-amber-100',
-      dot: 'bg-amber-300',
     },
     {
       key: 'ltm',
       label: copy.longTermHeading,
-      accent: 'from-sky-50 to-sky-100',
-      dot: 'bg-sky-300',
     },
     {
       key: 'profile',
       label: copy.profileHeading,
-      accent: 'from-emerald-50 to-emerald-100',
-      dot: 'bg-emerald-300',
     },
   ]
 
@@ -575,14 +566,9 @@ function App() {
     if (!selectedFamily) {
       setFamilyMembers([])
       setSelectedMember(null)
-      setFamilyEditForm({ description: '', task_price: '' })
       return
     }
     setFamilyMembers(selectedFamily.members ?? [])
-    setFamilyEditForm({
-      description: selectedFamily.description ?? '',
-      task_price: selectedFamily.task_price?.toString() ?? '',
-    })
     setSelectedMember((current) => {
       if (!current) return selectedFamily.members?.[0] ?? null
       const stillExists = selectedFamily.members?.find(
@@ -660,10 +646,6 @@ function App() {
       })
       if (selectedFamilyId === updatedFamily.family_id) {
         setFamilyMembers(updatedFamily.members ?? [])
-        setFamilyEditForm({
-          description: updatedFamily.description ?? '',
-          task_price: updatedFamily.task_price?.toString() ?? '',
-        })
         setSelectedMember((current) => {
           if (!current) return updatedFamily.members?.[0] ?? null
           const stillExists = updatedFamily.members?.find(
@@ -672,21 +654,6 @@ function App() {
           )
           return stillExists ?? updatedFamily.members?.[0] ?? null
         })
-      }
-    },
-    onError: (error: Error) => setGlobalError(error.message),
-  })
-
-  const deleteFamilyMutation = useMutation<void, Error, string>({
-    mutationFn: (familyId) => api.deleteFamily(familyId),
-    onSuccess: (_data, familyId) => {
-      setGlobalError(null)
-      queryClient.setQueryData(['families'], (old: Family[] | undefined) =>
-        old?.filter((fam) => fam.family_id !== familyId) ?? [],
-      )
-      if (selectedFamilyId === familyId) {
-        setSelectedFamilyId(null)
-        setView('landing')
       }
     },
     onError: (error: Error) => setGlobalError(error.message),
@@ -733,10 +700,6 @@ function App() {
     setFamilyForm((prev) => ({ ...prev, task_price: normalizeStakeInput(value) }))
   }
 
-  const handleEditStakeChange = (value: string) => {
-    setFamilyEditForm((prev) => ({ ...prev, task_price: normalizeStakeInput(value) }))
-  }
-
   const handleCreateFamily = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!familyForm.name.trim()) {
@@ -754,30 +717,6 @@ function App() {
       task_price: parsedTaskPrice,
       members: [],
     })
-  }
-
-  const handleSaveFamilyDetails = () => {
-    if (!selectedFamily) return
-    const payload: UpdateFamilyPayload = {}
-    if (familyEditForm.description.trim() !== selectedFamily.description?.trim()) {
-      payload.description = familyEditForm.description.trim()
-    }
-    const parsedStake = familyEditForm.task_price.trim()
-    if (parsedStake !== '') {
-      const numericStake = Math.max(0, Number(parsedStake) || 0)
-      if ((selectedFamily.task_price ?? null) !== numericStake) {
-        payload.task_price = numericStake
-      }
-    }
-    if (!Object.keys(payload).length) {
-      setIsEditingFamily(false)
-      return
-    }
-    updateFamilyMutation.mutate({
-      familyId: selectedFamily.family_id,
-      payload,
-    })
-    setIsEditingFamily(false)
   }
 
   const persistMembers = (members: FamilyMember[]) => {
@@ -816,13 +755,6 @@ function App() {
     ) {
       setSelectedMember(updatedMembers[0] ?? null)
     }
-  }
-
-  const handleDeleteFamily = () => {
-    if (!selectedFamily) return
-    const confirmed = window.confirm(copy.deleteConfirmation)
-    if (!confirmed) return
-    deleteFamilyMutation.mutate(selectedFamily.family_id)
   }
 
   const handleSendMessage = () => {
@@ -883,77 +815,6 @@ function App() {
             {globalError}
           </div>
         )}
-        <AnimatePresence>
-          {isEditingFamily && selectedFamily && (
-            <motion.div
-              key="edit-family"
-              className="fixed inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsEditingFamily(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={(event) => event.stopPropagation()}
-                className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl"
-              >
-                <div className="mb-6">
-                  <p className="text-[10px] uppercase tracking-[0.3em] text-stone-400">{copy.modalEditTitle}</p>
-                  <h3 className="mt-2 text-2xl font-display text-stone-900">{selectedFamily.name}</h3>
-                </div>
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.3em] text-stone-400">{copy.modalDescriptionLabel}</label>
-                    <textarea
-                      className="mt-2 w-full rounded-2xl border border-stone-200 bg-surface-50 px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-stone-900"
-                      rows={3}
-                      placeholder={copy.familyDescriptionPlaceholder}
-                      value={familyEditForm.description}
-                      onChange={(event) =>
-                        setFamilyEditForm((prev) => ({ ...prev, description: event.target.value }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.3em] text-stone-400">{copy.modalStakeLabel}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      className="mt-2 w-full rounded-2xl border border-stone-200 bg-surface-50 px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-stone-900"
-                      value={familyEditForm.task_price}
-                      onChange={(event) => handleEditStakeChange(event.target.value)}
-                    />
-                    <p className="mt-2 flex items-center gap-2 text-xs text-stone-400">
-                      <Info className="h-3.5 w-3.5" />
-                      <span>{copy.modalStakeHint}</span>
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-8 flex items-center justify-end gap-4 text-xs tracking-[0.2em] uppercase">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingFamily(false)}
-                    className="text-stone-400 hover:text-stone-900"
-                  >
-                    {copy.cancelButton}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveFamilyDetails}
-                    disabled={updateFamilyMutation.isPending}
-                    className="rounded-full bg-stone-900 px-6 py-2 text-white hover:bg-stone-800 disabled:bg-stone-200"
-                  >
-                    {updateFamilyMutation.isPending ? copy.savingButton : copy.saveButton}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
         <AnimatePresence mode="wait">
           {view === 'landing' && (
             <motion.div
@@ -1346,9 +1207,9 @@ function App() {
                     {copy.conversationTabLabel}
                   </button>
                   <button
-                    onClick={() => setDashboardView('files')}
+                    onClick={() => setDashboardView('memory')}
                     className={`text-xs uppercase tracking-[0.2em] transition-colors ${
-                      dashboardView === 'files' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
+                      dashboardView === 'memory' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
                     {copy.fileManagementTabLabel}
@@ -1471,67 +1332,61 @@ function App() {
                         </div>
                       </div>
                     </div>
-
-                    {/* Memory Sidebar */}
-                    <div className="w-96 overflow-y-auto border-l border-stone-200 bg-gradient-to-b from-surface-50 via-white to-surface-50 p-8">
-                      <div className="mb-6">
-                        <div className="flex items-center gap-3 rounded-3xl border border-stone-100 bg-white/70 px-4 py-3 shadow-sm">
-                          <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-stone-500">
-                            {copy.memoryHeading}
-                          </span>
-                        </div>
+                  </>
+                ) : (
+                  <div className="flex-1 overflow-y-auto p-12 bg-surface-50">
+                    <div className="max-w-5xl mx-auto space-y-12">
+                      <div className="border-b border-stone-200 pb-8">
+                        <h3 className="text-3xl font-display italic text-stone-900 mb-2">{copy.memoryHeading}</h3>
+                        <p className="text-stone-500 font-light">{copy.memorySubheading}</p>
                       </div>
 
-                      <div className="space-y-6">
-                        {/* Context */}
-                        {currentContext && (
-                          <div className="rounded-3xl border border-stone-100 bg-gradient-to-r from-stone-50 to-white px-5 py-6 shadow-sm">
-                            <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-stone-500">
-                              <span className="h-1.5 w-1.5 rounded-full bg-stone-400" />
-                              <span>{copy.activeContextLabel}</span>
-                            </div>
-                            <p className="text-sm leading-relaxed text-stone-600 font-light italic">
-                              “{currentContext}”
-                            </p>
+                      {/* Context */}
+                      {currentContext && (
+                        <div className="rounded-3xl border border-stone-100 bg-gradient-to-r from-stone-50 to-white px-8 py-8 shadow-sm">
+                          <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-stone-500">
+                            <span className="h-2 w-2 rounded-full bg-stone-400" />
+                            <span>{copy.activeContextLabel}</span>
                           </div>
-                        )}
+                          <p className="text-lg leading-relaxed text-stone-700 font-light italic">
+                            “{currentContext}”
+                          </p>
+                        </div>
+                      )}
 
-                        {/* Snapshots */}
+                      {/* Snapshots Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {memorySections.map((section) => {
                           const entries = currentMemory?.[section.key] ?? []
                           return (
                             <div
                               key={section.key}
-                              className={clsx(
-                                'rounded-3xl border border-white/60 bg-gradient-to-b px-5 py-6 shadow-sm',
-                                section.accent,
-                              )}
+                              className="rounded-3xl border border-stone-200 bg-white/50 px-8 py-8 shadow-sm"
                             >
-                              <div className="flex items-center gap-3">
-                                <span className={`h-2 w-2 rounded-full ${section.dot}`} />
-                                <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">
+                              <div className="flex items-center gap-3 mb-6 border-b border-stone-100 pb-4">
+                                <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
                                   {section.label}
                                 </p>
                               </div>
-                              <div className="mt-5 space-y-4">
+                              <div className="space-y-4">
                                 {entries.length ? (
                                   entries.map((item: string, index: number) => (
                                     <div
                                       key={`${section.key}-${index}`}
-                                      className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 shadow-sm"
+                                      className="rounded-xl border border-stone-100 bg-white px-6 py-5 shadow-sm"
                                     >
-                                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-300">
+                                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-3">
                                         <span className="font-medium text-stone-400">#{index + 1}</span>
                                         <span className="h-px w-6 bg-stone-100" />
                                         <span>{section.label}</span>
                                       </div>
-                                      <p className="mt-2 text-sm leading-relaxed text-stone-700">
+                                      <p className="text-sm leading-relaxed text-stone-700 whitespace-pre-wrap font-mono text-xs">
                                         {item}
                                       </p>
                                     </div>
                                   ))
                                 ) : (
-                                  <div className="rounded-2xl border border-dashed border-white/60 bg-white/40 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-stone-300">
+                                  <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-6 py-8 text-center text-xs uppercase tracking-[0.3em] text-stone-300">
                                     {copy.emptyMemoryLabel}
                                   </div>
                                 )}
@@ -1539,61 +1394,6 @@ function App() {
                             </div>
                           )
                         })}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex-1 overflow-y-auto p-12 bg-surface-50">
-                    <div className="max-w-3xl mx-auto space-y-12">
-                      <div className="border-b border-stone-200 pb-8">
-                        <h3 className="text-3xl font-display italic text-stone-900 mb-2">Family Settings</h3>
-                        <p className="text-stone-500 font-light">Manage your family profile and data.</p>
-                      </div>
-
-                      {/* Family Details */}
-                      <div className="space-y-8">
-                         <div className="grid grid-cols-2 gap-8">
-                            <div>
-                                <label className="block text-[10px] uppercase tracking-widest text-stone-400 mb-2">Family Name</label>
-                                <p className="text-xl font-display text-stone-800">{selectedFamily?.name}</p>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] uppercase tracking-widest text-stone-400 mb-2">Family ID</label>
-                                <p className="text-xl font-display text-stone-800">{selectedFamily?.family_id}</p>
-                            </div>
-                         </div>
-                         <div>
-                            <label className="block text-[10px] uppercase tracking-widest text-stone-400 mb-2">Description</label>
-                            <p className="text-stone-600 font-light leading-relaxed">{selectedFamily?.description || 'No description provided.'}</p>
-                         </div>
-                         
-                         <div className="flex gap-4 pt-4">
-                            <button
-                                onClick={() => setIsEditingFamily(true)}
-                                className="flex items-center gap-2 px-6 py-3 border border-stone-200 text-stone-600 hover:border-stone-900 hover:text-stone-900 transition-colors uppercase tracking-widest text-xs"
-                            >
-                                <Settings size={16} /> Edit Details
-                            </button>
-                         </div>
-                      </div>
-
-                      {/* Danger Zone */}
-                      <div className="pt-12 border-t border-stone-200">
-                        <h4 className="text-rose-500 uppercase tracking-widest text-xs mb-6">Danger Zone</h4>
-                        <div className="bg-rose-50/50 border border-rose-100 p-8 flex items-center justify-between">
-                            <div>
-                                <h5 className="text-stone-900 font-medium mb-1">Delete Family</h5>
-                                <p className="text-stone-500 text-sm font-light">Permanently remove this family and all associated data.</p>
-                            </div>
-                            <button
-                                onClick={handleDeleteFamily}
-                                disabled={deleteFamilyMutation.isPending}
-                                className="flex items-center gap-2 px-6 py-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:border-rose-300 transition-colors uppercase tracking-widest text-xs"
-                            >
-                                {deleteFamilyMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
-                                Delete Family
-                            </button>
-                        </div>
                       </div>
                     </div>
                   </div>

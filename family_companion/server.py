@@ -55,7 +55,7 @@ def register_family(req: CreateFamilyRequest) -> FamilyResponse:
         description=req.description,
         family_id=req.family_id,
         task_price=req.task_price,
-        language=req.language,
+        members=[member.dict() for member in req.members],
     )
     return FamilyResponse(**agent.to_dict())
 
