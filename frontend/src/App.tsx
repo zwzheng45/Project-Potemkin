@@ -10,20 +10,22 @@ import {
   Loader2,
   Plus,
   RefreshCcw,
-  Trash2,
   X,
 } from 'lucide-react'
 
 import { api } from './lib/api'
 import type {
+  AuthResponse,
   ChatMessage,
   ChatResponse,
   MemorySnapshot,
   FamilyMember,
-  CreateFamilyPayload,
-  UpdateFamilyPayload,
   Family,
   HealthStatus,
+  InviteMemberPayload,
+  LoginPayload,
+  ProfileResponse,
+  SignupPayload,
 } from './types'
 
 type Copy = {
@@ -44,6 +46,18 @@ type Copy = {
   selectExistingFamily: string
   footerMembase: string
   footerChain: string
+  authSignupTab: string
+  authLoginTab: string
+  signupButton: string
+  loginButton: string
+  signupDescription: string
+  loginDescription: string
+  ownerNamePlaceholder: string
+  ownerEmailPlaceholder: string
+  ownerPasswordPlaceholder: string
+  ownerFieldsRequired: string
+  loginFieldsRequired: string
+  authRequired: string
   identitySelectionLabel: string
   identitySelectionTitle: string
   noMembersTitle: string
@@ -51,8 +65,12 @@ type Copy = {
   newMemberTitle: string
   newMemberNamePlaceholder: string
   newMemberIdentityPlaceholder: string
+  newMemberEmailPlaceholder: string
+  newMemberPasswordPlaceholder: string
   confirmLabel: string
   addMemberButton: string
+  ownerOnlyInviteHint: string
+  logoutLabel: string
   enterFamilyButton: string
   introWelcome: string
   introTagline: string
@@ -83,6 +101,9 @@ type Copy = {
   shortTermHeading: string
   longTermHeading: string
   profileHeading: string
+  userShortTermHeading: string
+  memberRoleOwner: string
+  memberRoleMember: string
   emptyMemoryLabel: string
   apiConnected: string
   apiConnecting: string
@@ -106,7 +127,19 @@ const translations = {
     familyDescriptionPlaceholder: 'Family summary (optional)',
     familyIdPlaceholder: 'ID (optional)',
     familyStakePlaceholder: 'Stake (BNB)',
+    authSignupTab: 'Sign up',
+    authLoginTab: 'Log in',
+    signupButton: 'Create & sign up',
+    loginButton: 'Log in',
+    signupDescription: 'Create a family and owner account in one step.',
+    loginDescription: 'Log in with your family companion account.',
+    ownerNamePlaceholder: 'Your name...',
+    ownerEmailPlaceholder: 'Email...',
+    ownerPasswordPlaceholder: 'Password...',
     familyNameRequired: 'Please enter a family name',
+    ownerFieldsRequired: 'Name, email, and password are required',
+    loginFieldsRequired: 'Email and password are required',
+    authRequired: 'Please sign in to chat',
     createFamilyButton: 'Create Family',
     selectExistingFamily: 'Select Existing Family',
     footerMembase: 'Membase Powered',
@@ -118,8 +151,12 @@ const translations = {
     newMemberTitle: 'New Member',
     newMemberNamePlaceholder: 'Name...',
     newMemberIdentityPlaceholder: 'Identity...',
+    newMemberEmailPlaceholder: 'Email...',
+    newMemberPasswordPlaceholder: 'Password...',
     confirmLabel: 'Confirm',
     addMemberButton: 'Add Member',
+    ownerOnlyInviteHint: 'Only the owner can invite new members',
+    logoutLabel: 'Sign out',
     enterFamilyButton: 'Enter Family',
     introWelcome: 'Welcome',
     introTagline: 'Your Family Companion',
@@ -150,6 +187,9 @@ const translations = {
     shortTermHeading: 'Short-term Memory',
     longTermHeading: 'Long-term Memory',
     profileHeading: 'Family Profile',
+    userShortTermHeading: 'Your Recent Memory',
+    memberRoleOwner: 'Owner',
+    memberRoleMember: 'Member',
     emptyMemoryLabel: 'Empty',
     apiConnected: 'API Connected',
     apiConnecting: 'API Connecting...',
@@ -171,7 +211,19 @@ const translations = {
     familyDescriptionPlaceholder: '家庭简介（可选）',
     familyIdPlaceholder: '自定义 ID（可选）',
     familyStakePlaceholder: '质押金额（BNB）',
+    authSignupTab: '注册',
+    authLoginTab: '登录',
+    signupButton: '创建并注册',
+    loginButton: '登录',
+    signupDescription: '一步创建家庭与拥有者账号。',
+    loginDescription: '使用家庭成员邮箱登录。',
+    ownerNamePlaceholder: '你的姓名...',
+    ownerEmailPlaceholder: '邮箱...',
+    ownerPasswordPlaceholder: '密码...',
     familyNameRequired: '请填写家庭名称',
+    ownerFieldsRequired: '姓名、邮箱和密码必填',
+    loginFieldsRequired: '邮箱和密码必填',
+    authRequired: '请先登录再聊天',
     createFamilyButton: '创建家庭',
     selectExistingFamily: '选择已有家庭',
     footerMembase: 'Membase 驱动',
@@ -183,8 +235,12 @@ const translations = {
     newMemberTitle: '新增成员',
     newMemberNamePlaceholder: '姓名...',
     newMemberIdentityPlaceholder: '身份...',
+    newMemberEmailPlaceholder: '邮箱...',
+    newMemberPasswordPlaceholder: '密码...',
     confirmLabel: '确认',
     addMemberButton: '添加成员',
+    ownerOnlyInviteHint: '仅家庭拥有者可邀请新成员',
+    logoutLabel: '退出登录',
     enterFamilyButton: '进入家庭',
     introWelcome: '欢迎',
     introTagline: '你的家庭伙伴',
@@ -215,6 +271,9 @@ const translations = {
     shortTermHeading: '短期记忆',
     longTermHeading: '长期记忆',
     profileHeading: '家庭画像',
+    userShortTermHeading: '你的近期记忆',
+    memberRoleOwner: '拥有者',
+    memberRoleMember: '成员',
     emptyMemoryLabel: '暂无',
     apiConnected: 'API 已连接',
     apiConnecting: 'API 连接中...',
@@ -236,7 +295,19 @@ const translations = {
     familyDescriptionPlaceholder: 'Résumé de la famille (optionnel)',
     familyIdPlaceholder: 'ID (optionnel)',
     familyStakePlaceholder: 'Mise (BNB)',
+    authSignupTab: "Inscription",
+    authLoginTab: "Connexion",
+    signupButton: "Créer et s'inscrire",
+    loginButton: 'Se connecter',
+    signupDescription: 'Créez la famille et le compte propriétaire en une fois.',
+    loginDescription: 'Connectez-vous avec votre compte du compagnon familial.',
+    ownerNamePlaceholder: 'Votre nom...',
+    ownerEmailPlaceholder: 'Email...',
+    ownerPasswordPlaceholder: 'Mot de passe...',
     familyNameRequired: 'Veuillez saisir un nom de famille',
+    ownerFieldsRequired: 'Nom, email et mot de passe requis',
+    loginFieldsRequired: 'Email et mot de passe sont requis',
+    authRequired: 'Veuillez vous connecter pour discuter',
     createFamilyButton: 'Créer la famille',
     selectExistingFamily: 'Sélectionner une famille existante',
     footerMembase: 'Propulsé par Membase',
@@ -248,8 +319,12 @@ const translations = {
     newMemberTitle: 'Nouveau membre',
     newMemberNamePlaceholder: 'Nom...',
     newMemberIdentityPlaceholder: 'Identité...',
+    newMemberEmailPlaceholder: 'Email...',
+    newMemberPasswordPlaceholder: 'Mot de passe...',
     confirmLabel: 'Confirmer',
     addMemberButton: 'Ajouter un membre',
+    ownerOnlyInviteHint: 'Seul le propriétaire peut inviter de nouveaux membres',
+    logoutLabel: 'Se déconnecter',
     enterFamilyButton: 'Entrer dans la famille',
     introWelcome: 'Bienvenue',
     introTagline: 'Votre compagnon familial',
@@ -280,6 +355,9 @@ const translations = {
     shortTermHeading: 'Mémoire court terme',
     longTermHeading: 'Mémoire long terme',
     profileHeading: 'Profil familial',
+    userShortTermHeading: 'Votre mémoire récente',
+    memberRoleOwner: 'Propriétaire',
+    memberRoleMember: 'Membre',
     emptyMemoryLabel: 'Vide',
     apiConnected: 'API connectée',
     apiConnecting: 'API en connexion...',
@@ -301,7 +379,19 @@ const translations = {
     familyDescriptionPlaceholder: 'Familienzusammenfassung (optional)',
     familyIdPlaceholder: 'ID (optional)',
     familyStakePlaceholder: 'Stake (BNB)',
+    authSignupTab: 'Registrieren',
+    authLoginTab: 'Anmelden',
+    signupButton: 'Erstellen & registrieren',
+    loginButton: 'Anmelden',
+    signupDescription: 'Familie und Besitzeraccount in einem Schritt.',
+    loginDescription: 'Mit deinem Familien-Account anmelden.',
+    ownerNamePlaceholder: 'Dein Name...',
+    ownerEmailPlaceholder: 'E-Mail...',
+    ownerPasswordPlaceholder: 'Passwort...',
     familyNameRequired: 'Bitte einen Familiennamen eingeben',
+    ownerFieldsRequired: 'Name, E-Mail und Passwort sind erforderlich',
+    loginFieldsRequired: 'E-Mail und Passwort sind erforderlich',
+    authRequired: 'Bitte melde dich an, um zu chatten',
     createFamilyButton: 'Familie erstellen',
     selectExistingFamily: 'Bestehende Familie wählen',
     footerMembase: 'Angetrieben von Membase',
@@ -313,8 +403,12 @@ const translations = {
     newMemberTitle: 'Neues Mitglied',
     newMemberNamePlaceholder: 'Name...',
     newMemberIdentityPlaceholder: 'Identität...',
+    newMemberEmailPlaceholder: 'E-Mail...',
+    newMemberPasswordPlaceholder: 'Passwort...',
     confirmLabel: 'Bestätigen',
     addMemberButton: 'Mitglied hinzufügen',
+    ownerOnlyInviteHint: 'Nur der Owner kann neue Mitglieder einladen',
+    logoutLabel: 'Abmelden',
     enterFamilyButton: 'Familie betreten',
     introWelcome: 'Willkommen',
     introTagline: 'Ihr Familienbegleiter',
@@ -345,6 +439,9 @@ const translations = {
     shortTermHeading: 'Kurzzeitgedächtnis',
     longTermHeading: 'Langzeitgedächtnis',
     profileHeading: 'Familienprofil',
+    userShortTermHeading: 'Deine letzten Gespräche',
+    memberRoleOwner: 'Owner',
+    memberRoleMember: 'Mitglied',
     emptyMemoryLabel: 'Leer',
     apiConnected: 'API verbunden',
     apiConnecting: 'API verbindet...',
@@ -366,7 +463,19 @@ const translations = {
     familyDescriptionPlaceholder: '家族の概要（任意）',
     familyIdPlaceholder: 'ID（任意）',
     familyStakePlaceholder: 'ステーク（BNB）',
+    authSignupTab: '登録',
+    authLoginTab: 'ログイン',
+    signupButton: '作成して登録',
+    loginButton: 'ログイン',
+    signupDescription: '家族とオーナーアカウントを一度に作成。',
+    loginDescription: '家族のアカウントでログイン。',
+    ownerNamePlaceholder: 'あなたの名前...',
+    ownerEmailPlaceholder: 'メール...',
+    ownerPasswordPlaceholder: 'パスワード...',
     familyNameRequired: '家族名を入力してください',
+    ownerFieldsRequired: '名前・メール・パスワードは必須',
+    loginFieldsRequired: 'メールとパスワードは必須です',
+    authRequired: 'チャットするにはログインしてください',
     createFamilyButton: '家族を作成',
     selectExistingFamily: '既存の家族を選択',
     footerMembase: 'Membase 提供',
@@ -378,8 +487,12 @@ const translations = {
     newMemberTitle: '新しいメンバー',
     newMemberNamePlaceholder: '名前...',
     newMemberIdentityPlaceholder: '役割...',
+    newMemberEmailPlaceholder: 'メール...',
+    newMemberPasswordPlaceholder: 'パスワード...',
     confirmLabel: '確定',
     addMemberButton: 'メンバーを追加',
+    ownerOnlyInviteHint: '招待はオーナーのみが行えます',
+    logoutLabel: 'ログアウト',
     enterFamilyButton: '家族に入る',
     introWelcome: 'ようこそ',
     introTagline: 'あなたの家族コンパニオン',
@@ -410,6 +523,9 @@ const translations = {
     shortTermHeading: '短期メモリー',
     longTermHeading: '長期メモリー',
     profileHeading: '家族プロフィール',
+    userShortTermHeading: 'あなたの最近の記憶',
+    memberRoleOwner: 'オーナー',
+    memberRoleMember: 'メンバー',
     emptyMemoryLabel: 'なし',
     apiConnected: 'API 接続済み',
     apiConnecting: 'API 接続中...',
@@ -484,20 +600,31 @@ const LanguageSelector = ({ language, label, onChange, className }: LanguageSele
 
 function App() {
   const queryClient = useQueryClient()
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return window.localStorage.getItem('fc-token')
+  })
   const [selectedFamilyId, setSelectedFamilyId] = useState<string | null>(null)
   const [view, setView] = useState<'landing' | 'identity' | 'intro' | 'dashboard'>('landing')
   const [introStep, setIntroStep] = useState(0)
-  const [familyForm, setFamilyForm] = useState({
-    name: '',
+  const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup')
+  const [signupForm, setSignupForm] = useState({
+    family_name: '',
     description: '',
     family_id: '',
     task_price: '',
+    user_name: '',
+    email: '',
+    password: '',
   })
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])
   const [isAddingMember, setIsAddingMember] = useState(false)
   const [newMemberName, setNewMemberName] = useState('')
-  const [newMemberIdentity, setNewMemberIdentity] = useState('')
-  const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null)
+  const [newMemberEmail, setNewMemberEmail] = useState('')
+  const [newMemberPassword, setNewMemberPassword] = useState('')
+  const [newMemberRole, setNewMemberRole] = useState('member')
+  const [sessionUser, setSessionUser] = useState<FamilyMember | null>(null)
   const [chatDraft, setChatDraft] = useState('')
   const [chatLogs, setChatLogs] = useState<Record<string, ChatMessage[]>>({})
   const [memoryCache, setMemoryCache] = useState<Record<string, MemorySnapshot>>({})
@@ -514,11 +641,24 @@ function App() {
     window.localStorage.setItem('fc-language', language)
   }, [language])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (authToken) {
+      window.localStorage.setItem('fc-token', authToken)
+    } else {
+      window.localStorage.removeItem('fc-token')
+    }
+  }, [authToken])
+
   const copy = translations[language]
   const memorySections: Array<{
     key: keyof MemorySnapshot
     label: string
   }> = [
+    {
+      key: 'user_stm',
+      label: copy.userShortTermHeading,
+    },
     {
       key: 'stm',
       label: copy.shortTermHeading,
@@ -545,69 +685,119 @@ function App() {
     refetchInterval: 30_000,
   })
 
-  const familiesQuery = useQuery<Family[]>({
-    queryKey: ['families'],
-    queryFn: api.fetchFamilies,
+  const profileQuery = useQuery<ProfileResponse>({
+    queryKey: ['profile', authToken],
+    queryFn: () => api.fetchProfile(authToken!),
+    enabled: Boolean(authToken),
+    retry: false,
   })
 
-  const families = familiesQuery.data ?? []
+  useEffect(() => {
+    if (!profileQuery.data) return
+    const data = profileQuery.data
+    setGlobalError(null)
+    setSessionUser(data.user)
+    setSelectedFamilyId(data.family.family_id)
+    setFamilyMembers(data.family.members ?? [])
+    if (view === 'landing') {
+      setView('identity')
+    }
+  }, [profileQuery.data, view])
+
+  useEffect(() => {
+    const error = profileQuery.error as Error | null
+    if (error) {
+      setGlobalError(error.message)
+      setAuthToken(null)
+      setSessionUser(null)
+      setSelectedFamilyId(null)
+    }
+  }, [profileQuery.error])
+
   const selectedFamily = useMemo(() => {
-    if (!familiesQuery.data || familiesQuery.data.length === 0) return null
+    if (profileQuery.data?.family) return profileQuery.data.family
     if (selectedFamilyId) {
-      return (
-        familiesQuery.data.find((family) => family.family_id === selectedFamilyId) ??
-        familiesQuery.data[0]
-      )
+      return queryClient.getQueryData<Family>(['family', selectedFamilyId]) ?? null
     }
     return null
-  }, [familiesQuery.data, selectedFamilyId])
+  }, [profileQuery.data?.family, selectedFamilyId, queryClient])
 
   useEffect(() => {
     if (!selectedFamily) {
       setFamilyMembers([])
-      setSelectedMember(null)
       return
     }
     setFamilyMembers(selectedFamily.members ?? [])
-    setSelectedMember((current) => {
-      if (!current) return selectedFamily.members?.[0] ?? null
-      const stillExists = selectedFamily.members?.find(
-        (member) =>
-          member.name === current.name && member.identity === current.identity,
-      )
-      return stillExists ?? selectedFamily.members?.[0] ?? null
-    })
   }, [selectedFamily])
 
+  useEffect(() => {
+    if (!authToken) {
+      setChatLogs({})
+      setMemoryCache({})
+      setContextCache({})
+      setSessionUser(null)
+      setSelectedFamilyId(null)
+    }
+  }, [authToken])
+
   const memoryQuery = useQuery<MemorySnapshot>({
-    queryKey: ['memory', selectedFamily?.family_id],
-    queryFn: () => api.fetchMemory(selectedFamily!.family_id),
-    enabled: Boolean(selectedFamily),
+    queryKey: ['memory', selectedFamily?.family_id, authToken],
+    queryFn: () => api.fetchMemory(selectedFamily!.family_id, authToken!),
+    enabled: Boolean(selectedFamily && authToken),
     placeholderData: selectedFamily ? memoryCache[selectedFamily.family_id] : undefined,
   })
 
-  const createFamilyMutation = useMutation<Family, Error, CreateFamilyPayload>({
-    mutationFn: (payload) => api.createFamily(payload),
-    onSuccess: (family) => {
-      setFormError(null)
-      setFamilyForm({ name: '', description: '', family_id: '', task_price: '' })
-      queryClient.setQueryData(['families'], (old: any) => [...(old || []), family])
-      setSelectedFamilyId(family.family_id)
-      setShouldShowIntro(true)
-      setView('identity')
-    },
+  const handleAuthSuccess = (resp: AuthResponse, showIntro = false) => {
+    setAuthToken(resp.token)
+    setSessionUser(resp.user)
+    setSelectedFamilyId(resp.family.family_id)
+    setFamilyMembers(resp.family.members ?? [])
+    setFormError(null)
+    setGlobalError(null)
+    setChatLogs({})
+    setMemoryCache({})
+    setContextCache({})
+    setSignupForm({
+      family_name: '',
+      description: '',
+      family_id: '',
+      task_price: '',
+      user_name: '',
+      email: '',
+      password: '',
+    })
+    setLoginForm({ email: '', password: '' })
+    setIsAddingMember(false)
+    queryClient.setQueryData(['profile', resp.token], {
+      user: resp.user,
+      family: resp.family,
+    } satisfies ProfileResponse)
+    queryClient.setQueryData(['family', resp.family.family_id], resp.family)
+    setShouldShowIntro(showIntro)
+    setView(showIntro ? 'intro' : 'identity')
+  }
+
+  const signupMutation = useMutation<AuthResponse, Error, SignupPayload>({
+    mutationFn: (payload) => api.signup(payload),
+    onSuccess: (resp) => handleAuthSuccess(resp, true),
     onError: (error: Error) => {
       setFormError(error.message)
     },
   })
 
+  const loginMutation = useMutation<AuthResponse, Error, LoginPayload>({
+    mutationFn: (payload) => api.login(payload),
+    onSuccess: (resp) => handleAuthSuccess(resp),
+    onError: (error: Error) => setFormError(error.message),
+  })
+
   const chatMutation = useMutation<
     ChatResponse,
     Error,
-    { familyId: string; content: string; sender: string }
+    { familyId: string; content: string }
   >({
-    mutationFn: async ({ familyId, content, sender }) => {
-      return api.chatWithFamily(familyId, { sender, content })
+    mutationFn: async ({ familyId, content }) => {
+      return api.chatWithFamily(familyId, { content }, authToken!)
     },
     onSuccess: (resp) => {
       setChatError(null)
@@ -630,31 +820,28 @@ function App() {
     onError: (error: Error) => setChatError(error.message),
   })
 
-  const updateFamilyMutation = useMutation<
-    Family,
+  const inviteMemberMutation = useMutation<
+    FamilyMember,
     Error,
-    { familyId: string; payload: UpdateFamilyPayload }
+    { familyId: string; payload: InviteMemberPayload }
   >({
-    mutationFn: ({ familyId, payload }) => api.updateFamily(familyId, payload),
-    onSuccess: (updatedFamily) => {
+    mutationFn: ({ familyId, payload }) => api.inviteMember(familyId, payload, authToken!),
+    onSuccess: (member) => {
       setGlobalError(null)
-      queryClient.setQueryData(['families'], (old: Family[] | undefined) => {
-        if (!old) return [updatedFamily]
-        return old.map((fam) =>
-          fam.family_id === updatedFamily.family_id ? updatedFamily : fam,
-        )
-      })
-      if (selectedFamilyId === updatedFamily.family_id) {
-        setFamilyMembers(updatedFamily.members ?? [])
-        setSelectedMember((current) => {
-          if (!current) return updatedFamily.members?.[0] ?? null
-          const stillExists = updatedFamily.members?.find(
-            (member) =>
-              member.name === current.name && member.identity === current.identity,
-          )
-          return stillExists ?? updatedFamily.members?.[0] ?? null
-        })
-      }
+      setIsAddingMember(false)
+      setNewMemberName('')
+      setNewMemberEmail('')
+      setNewMemberPassword('')
+      setNewMemberRole('member')
+      setFamilyMembers((prev) => [...prev, member])
+      queryClient.setQueryData(['profile', authToken], (old: ProfileResponse | undefined) =>
+        old
+          ? {
+              ...old,
+              family: { ...old.family, members: [...(old.family.members ?? []), member] },
+            }
+          : old,
+      )
     },
     onError: (error: Error) => setGlobalError(error.message),
   })
@@ -685,9 +872,13 @@ function App() {
       label: copy.apiConnecting,
     }
   }, [healthQuery.data?.status, healthError, copy])
-  const senderLabel = selectedMember
-    ? `${selectedMember.identity} (${selectedMember.name})`
+  const senderLabel = sessionUser
+    ? `${sessionUser.name} · ${sessionUser.role || copy.identityUnsetLabel}`
     : ''
+  const isOwner =
+    selectedFamily && sessionUser
+      ? selectedFamily.owner_id === sessionUser.user_id || sessionUser.role === 'owner'
+      : false
 
   const normalizeStakeInput = (value: string) => {
     if (value === '' || value === '-') return value
@@ -697,68 +888,68 @@ function App() {
   }
 
   const handleTaskPriceChange = (value: string) => {
-    setFamilyForm((prev) => ({ ...prev, task_price: normalizeStakeInput(value) }))
+    setSignupForm((prev) => ({ ...prev, task_price: normalizeStakeInput(value) }))
   }
 
-  const handleCreateFamily = (event: FormEvent<HTMLFormElement>) => {
+  const handleSignup = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!familyForm.name.trim()) {
+    if (!signupForm.family_name.trim()) {
       setFormError(copy.familyNameRequired)
       return
     }
+    if (!signupForm.user_name.trim() || !signupForm.email.trim() || !signupForm.password.trim()) {
+      setFormError(copy.ownerFieldsRequired)
+      return
+    }
     const parsedTaskPrice =
-      familyForm.task_price === ''
+      signupForm.task_price === ''
         ? undefined
-        : Math.max(0, Number(familyForm.task_price) || 0)
-    createFamilyMutation.mutate({
-      name: familyForm.name.trim(),
-      description: familyForm.description.trim() || undefined,
-      family_id: familyForm.family_id.trim() || undefined,
+        : Math.max(0, Number(signupForm.task_price) || 0)
+    signupMutation.mutate({
+      family_name: signupForm.family_name.trim(),
+      description: signupForm.description.trim(),
+      family_id: signupForm.family_id.trim() || undefined,
       task_price: parsedTaskPrice,
-      members: [],
+      language,
+      user_name: signupForm.user_name.trim(),
+      email: signupForm.email.trim(),
+      password: signupForm.password,
     })
   }
 
-  const persistMembers = (members: FamilyMember[]) => {
-    if (!selectedFamily) return
-    updateFamilyMutation.mutate({
-      familyId: selectedFamily.family_id,
-      payload: { members },
+  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!loginForm.email.trim() || !loginForm.password.trim()) {
+      setFormError(copy.loginFieldsRequired)
+      return
+    }
+    loginMutation.mutate({
+      email: loginForm.email.trim(),
+      password: loginForm.password,
     })
   }
 
   const handleAddMember = () => {
-    if (!selectedFamily) return
+    if (!selectedFamily || !sessionUser || !authToken) return
     const name = newMemberName.trim()
-    const identity = newMemberIdentity.trim()
-    if (!name || !identity) return
-    const updatedMembers = [...familyMembers, { name, identity }]
-    setFamilyMembers(updatedMembers)
-    setSelectedMember({ name, identity })
-    setNewMemberName('')
-    setNewMemberIdentity('')
-    setIsAddingMember(false)
-    persistMembers(updatedMembers)
-  }
-
-  const handleRemoveMember = (member: FamilyMember) => {
-    if (!selectedFamily) return
-    const updatedMembers = familyMembers.filter(
-      (item) => item.name !== member.name || item.identity !== member.identity,
-    )
-    setFamilyMembers(updatedMembers)
-    persistMembers(updatedMembers)
-    if (
-      selectedMember &&
-      selectedMember.name === member.name &&
-      selectedMember.identity === member.identity
-    ) {
-      setSelectedMember(updatedMembers[0] ?? null)
-    }
+    const email = newMemberEmail.trim()
+    if (!name || !email || !newMemberPassword.trim()) return
+    inviteMemberMutation.mutate({
+      familyId: selectedFamily.family_id,
+      payload: {
+        name,
+        email,
+        password: newMemberPassword,
+        role: newMemberRole || 'member',
+      },
+    })
   }
 
   const handleSendMessage = () => {
-    if (!activeFamilyId || !chatDraft.trim() || !selectedMember) return
+    if (!activeFamilyId || !chatDraft.trim() || !sessionUser || !authToken) {
+      setChatError(copy.authRequired)
+      return
+    }
     const content = chatDraft.trim()
     setChatDraft('')
     const pendingMessage: ChatMessage = {
@@ -774,8 +965,20 @@ function App() {
     chatMutation.mutate({
       familyId: activeFamilyId,
       content,
-      sender: `${selectedMember.identity} (${selectedMember.name})`,
     })
+  }
+
+  const handleLogout = () => {
+    setAuthToken(null)
+    setSessionUser(null)
+    setSelectedFamilyId(null)
+    setFamilyMembers([])
+    setChatLogs({})
+    setMemoryCache({})
+    setContextCache({})
+    setShouldShowIntro(false)
+    setView('landing')
+    queryClient.clear()
   }
 
   useEffect(() => {
@@ -846,93 +1049,175 @@ function App() {
                 </div>
 
                 <div className="w-full max-w-md bg-white/0 p-8">
-                  <form className="space-y-8" onSubmit={handleCreateFamily}>
-                    <div className="group relative">
-                      <input
-                        className="w-full border-b border-stone-300 bg-transparent px-0 py-4 text-xl text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display"
-                        placeholder={copy.familyNamePlaceholder}
-                        value={familyForm.name}
-                        onChange={(e) => setFamilyForm((prev) => ({ ...prev, name: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <textarea
-                        className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                        rows={2}
-                        placeholder={copy.familyDescriptionPlaceholder}
-                        value={familyForm.description}
-                        onChange={(e) =>
-                          setFamilyForm((prev) => ({ ...prev, description: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                        placeholder={copy.familyIdPlaceholder}
-                        value={familyForm.family_id}
-                        onChange={(e) =>
-                          setFamilyForm((prev) => ({ ...prev, family_id: e.target.value }))
-                        }
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                        placeholder={copy.familyStakePlaceholder}
-                        value={familyForm.task_price}
-                        onChange={(e) => handleTaskPriceChange(e.target.value)}
-                      />
-                    </div>
-                    {formError ? <p className="text-sm text-rose-500">{formError}</p> : null}
+                  <div className="mb-6 flex items-center justify-center gap-4">
                     <button
-                      type="submit"
-                      disabled={createFamilyMutation.isPending || !familyForm.name}
-                      className="group relative w-full overflow-hidden bg-stone-900 px-8 py-4 text-white transition-all hover:bg-stone-800 disabled:bg-stone-300"
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('signup')
+                        setFormError(null)
+                      }}
+                      className={clsx(
+                        'text-xs uppercase tracking-[0.25em] transition-colors',
+                        authMode === 'signup'
+                          ? 'text-stone-900 font-semibold'
+                          : 'text-stone-400 hover:text-stone-700',
+                      )}
                     >
-                      <div className="relative z-10 flex items-center justify-center gap-3">
-                        {createFamilyMutation.isPending ? (
-                          <Loader2 className="animate-spin" size={18} />
-                        ) : (
-                          <>
-                            <span className="text-sm font-medium tracking-[0.2em] uppercase">{copy.createFamilyButton}</span>
-                            <ArrowRight size={16} className="transition-transform duration-500 group-hover:translate-x-2" />
-                          </>
-                        )}
-                      </div>
+                      {copy.authSignupTab}
                     </button>
-                  </form>
-                </div>
-
-                {families.length > 0 && (
-                  <div className="mt-16 w-full max-w-4xl border-t border-stone-200 pt-12">
-                    <p className="mb-8 text-center text-[10px] uppercase tracking-[0.3em] text-stone-400">
-                      {copy.selectExistingFamily}
-                    </p>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-                      {families.map((family) => (
-                        <button
-                          key={family.family_id}
-                          onClick={() => {
-                            setSelectedFamilyId(family.family_id)
-                            setShouldShowIntro(false)
-                            setView('identity')
-                          }}
-                          className="group flex flex-col items-start gap-4 border border-transparent p-6 transition-all duration-500 hover:border-stone-200 hover:bg-white"
-                        >
-                          <div className="text-4xl font-display italic text-stone-300 transition-colors duration-500 group-hover:text-stone-800">
-                            {family.name.slice(0, 1)}
-                          </div>
-                          <div className="w-full text-left">
-                            <div className="mb-4 h-px w-8 bg-stone-300 transition-all duration-700 ease-out group-hover:w-full" />
-                            <p className="text-lg font-display text-stone-800">{family.name}</p>
-                            <p className="mt-1 text-[10px] uppercase tracking-wider text-stone-400">{family.family_id}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+                    <span className="h-px w-8 bg-stone-200" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode('login')
+                        setFormError(null)
+                      }}
+                      className={clsx(
+                        'text-xs uppercase tracking-[0.25em] transition-colors',
+                        authMode === 'login'
+                          ? 'text-stone-900 font-semibold'
+                          : 'text-stone-400 hover:text-stone-700',
+                      )}
+                    >
+                      {copy.authLoginTab}
+                    </button>
                   </div>
-                )}
+
+                  {authMode === 'signup' ? (
+                    <form className="space-y-6" onSubmit={handleSignup}>
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-stone-400">
+                        {copy.signupDescription}
+                      </p>
+                      <div className="group relative">
+                        <input
+                          className="w-full border-b border-stone-300 bg-transparent px-0 py-4 text-xl text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display"
+                          placeholder={copy.familyNamePlaceholder}
+                          value={signupForm.family_name}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({ ...prev, family_name: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div>
+                        <textarea
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          rows={2}
+                          placeholder={copy.familyDescriptionPlaceholder}
+                          value={signupForm.description}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({ ...prev, description: e.target.value }))
+                          }
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.familyIdPlaceholder}
+                          value={signupForm.family_id}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({ ...prev, family_id: e.target.value }))
+                          }
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.familyStakePlaceholder}
+                          value={signupForm.task_price}
+                          onChange={(e) => handleTaskPriceChange(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        <input
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.ownerNamePlaceholder}
+                          value={signupForm.user_name}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({ ...prev, user_name: e.target.value }))
+                          }
+                        />
+                        <input
+                          type="email"
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.ownerEmailPlaceholder}
+                          value={signupForm.email}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({ ...prev, email: e.target.value }))
+                          }
+                        />
+                        <input
+                          type="password"
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.ownerPasswordPlaceholder}
+                          value={signupForm.password}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({ ...prev, password: e.target.value }))
+                          }
+                        />
+                      </div>
+                      {formError ? <p className="text-sm text-rose-500">{formError}</p> : null}
+                      <button
+                        type="submit"
+                        disabled={signupMutation.isPending || !signupForm.family_name}
+                        className="group relative w-full overflow-hidden bg-stone-900 px-8 py-4 text-white transition-all hover:bg-stone-800 disabled:bg-stone-300"
+                      >
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                          {signupMutation.isPending ? (
+                            <Loader2 className="animate-spin" size={18} />
+                          ) : (
+                            <>
+                              <span className="text-sm font-medium tracking-[0.2em] uppercase">{copy.signupButton}</span>
+                              <ArrowRight size={16} className="transition-transform duration-500 group-hover:translate-x-2" />
+                            </>
+                          )}
+                        </div>
+                      </button>
+                    </form>
+                  ) : (
+                    <form className="space-y-6" onSubmit={handleLogin}>
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-stone-400">
+                        {copy.loginDescription}
+                      </p>
+                      <div className="flex flex-col gap-3">
+                        <input
+                          type="email"
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.ownerEmailPlaceholder}
+                          value={loginForm.email}
+                          onChange={(e) =>
+                            setLoginForm((prev) => ({ ...prev, email: e.target.value }))
+                          }
+                        />
+                        <input
+                          type="password"
+                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          placeholder={copy.ownerPasswordPlaceholder}
+                          value={loginForm.password}
+                          onChange={(e) =>
+                            setLoginForm((prev) => ({ ...prev, password: e.target.value }))
+                          }
+                        />
+                      </div>
+                      {formError ? <p className="text-sm text-rose-500">{formError}</p> : null}
+                      <button
+                        type="submit"
+                        disabled={loginMutation.isPending}
+                        className="group relative w-full overflow-hidden bg-stone-900 px-8 py-4 text-white transition-all hover:bg-stone-800 disabled:bg-stone-300"
+                      >
+                        <div className="relative z-10 flex items-center justify-center gap-3">
+                          {loginMutation.isPending ? (
+                            <Loader2 className="animate-spin" size={18} />
+                          ) : (
+                            <>
+                              <span className="text-sm font-medium tracking-[0.2em] uppercase">{copy.loginButton}</span>
+                              <ArrowRight size={16} className="transition-transform duration-500 group-hover:translate-x-2" />
+                            </>
+                          )}
+                        </div>
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
 
               <div className="mt-auto flex w-full justify-center pb-8">
@@ -964,15 +1249,11 @@ function App() {
             >
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedFamilyId(null)
-                  setSelectedMember(null)
-                  setView('landing')
-                }}
+                onClick={handleLogout}
                 className="absolute left-6 top-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-stone-400 transition-colors hover:text-stone-900"
               >
                 <ChevronLeft className="h-4 w-4" />
-                <span>{copy.backButtonLabel}</span>
+                <span>{copy.logoutLabel}</span>
               </button>
               <div className="mb-16 text-center">
                 <span className="text-[10px] tracking-[0.3em] uppercase text-stone-400 font-medium block mb-4">{copy.identitySelectionLabel}</span>
@@ -982,21 +1263,13 @@ function App() {
 
               <div className="grid w-full max-w-3xl grid-cols-2 gap-8 sm:grid-cols-4">
                 {familyMembers.length > 0 ? (
-                  familyMembers.map((member, index) => {
-                    const isSelected =
-                      selectedMember?.name === member.name &&
-                      selectedMember?.identity === member.identity
+                  familyMembers.map((member) => {
+                    const isSelected = sessionUser?.user_id === member.user_id
                     return (
                       <div
-                        key={`${member.name}-${member.identity}-${index}`}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedMember(member)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') setSelectedMember(member)
-                        }}
+                        key={`${member.user_id}-${member.email}`}
                         className={clsx(
-                          'group relative aspect-[3/4] flex flex-col items-center justify-center gap-4 transition-all duration-500 cursor-pointer',
+                          'group relative aspect-[3/4] flex flex-col items-center justify-center gap-4 transition-all duration-500',
                           isSelected ? 'bg-stone-100' : 'bg-transparent hover:bg-stone-50',
                         )}
                       >
@@ -1006,16 +1279,6 @@ function App() {
                             isSelected ? 'border-stone-800' : 'group-hover:border-stone-400',
                           )}
                         />
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            handleRemoveMember(member)
-                          }}
-                          className="absolute right-4 top-4 text-stone-300 hover:text-stone-900 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
                         <span
                           className={clsx(
                             'text-4xl font-display italic transition-colors duration-500',
@@ -1024,7 +1287,7 @@ function App() {
                         >
                           {member.name.slice(0, 1) || '?'}
                         </span>
-                        <div className="text-center space-y-1">
+                        <div className="text-center space-y-2 px-4">
                           <p
                             className={clsx(
                               'text-base font-display transition-colors duration-500',
@@ -1033,13 +1296,11 @@ function App() {
                           >
                             {member.name}
                           </p>
-                          <p
-                            className={clsx(
-                              'text-xs uppercase tracking-[0.2em] transition-colors duration-500',
-                              isSelected ? 'text-stone-900' : 'text-stone-400 group-hover:text-stone-600',
-                            )}
-                          >
-                            {member.identity}
+                          <p className="text-xs uppercase tracking-[0.2em] text-stone-400">
+                            {member.role === 'owner' ? copy.memberRoleOwner : copy.memberRoleMember}
+                          </p>
+                          <p className="text-[11px] leading-relaxed text-stone-500 break-all">
+                            {member.email}
                           </p>
                         </div>
                       </div>
@@ -1054,69 +1315,96 @@ function App() {
                   </div>
                 )}
 
-                {isAddingMember ? (
-                  <div className="col-span-2 aspect-[3/2] border border-stone-200 bg-white p-8 flex flex-col justify-center gap-6 animate-in fade-in zoom-in-95 duration-500">
-                    <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-                      <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400">{copy.newMemberTitle}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAddingMember(false)
-                          setNewMemberName('')
-                          setNewMemberIdentity('')
-                        }}
-                        className="text-stone-400 hover:text-stone-800 transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                {isOwner ? (
+                  isAddingMember ? (
+                    <div className="col-span-2 aspect-[3/2] border border-stone-200 bg-white p-8 flex flex-col justify-center gap-6 animate-in fade-in zoom-in-95 duration-500">
+                      <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400">{copy.newMemberTitle}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingMember(false)
+                            setNewMemberName('')
+                            setNewMemberEmail('')
+                            setNewMemberPassword('')
+                          }}
+                          className="text-stone-400 hover:text-stone-800 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="flex flex-col gap-4">
+                        <input
+                          type="text"
+                          value={newMemberName}
+                          onChange={(event) => setNewMemberName(event.target.value)}
+                          placeholder={copy.newMemberNamePlaceholder}
+                          className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
+                          autoFocus
+                        />
+                        <input
+                          type="email"
+                          value={newMemberEmail}
+                          onChange={(event) => setNewMemberEmail(event.target.value)}
+                          placeholder={copy.newMemberEmailPlaceholder}
+                          className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
+                        />
+                        <input
+                          type="password"
+                          value={newMemberPassword}
+                          onChange={(event) => setNewMemberPassword(event.target.value)}
+                          placeholder={copy.newMemberPasswordPlaceholder}
+                          className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') handleAddMember()
+                          }}
+                        />
+                        <select
+                          value={newMemberRole}
+                          onChange={(event) => setNewMemberRole(event.target.value)}
+                          className="w-full rounded-xl border border-stone-200 px-3 py-2 text-sm text-stone-700 outline-none bg-white"
+                        >
+                          <option value="member">{copy.memberRoleMember}</option>
+                          <option value="owner">{copy.memberRoleOwner}</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={handleAddMember}
+                          disabled={
+                            !newMemberName.trim() ||
+                            !newMemberEmail.trim() ||
+                            !newMemberPassword.trim() ||
+                            inviteMemberMutation.isPending
+                          }
+                          className="self-end text-[10px] uppercase tracking-[0.2em] text-stone-900 hover:text-stone-500 disabled:text-stone-300 transition-colors"
+                        >
+                          {inviteMemberMutation.isPending ? copy.savingButton : copy.confirmLabel}
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-4">
-                      <input
-                        type="text"
-                        value={newMemberName}
-                        onChange={(event) => setNewMemberName(event.target.value)}
-                        placeholder={copy.newMemberNamePlaceholder}
-                        className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
-                        autoFocus
-                      />
-                      <input
-                        type="text"
-                        value={newMemberIdentity}
-                        onChange={(event) => setNewMemberIdentity(event.target.value)}
-                        placeholder={copy.newMemberIdentityPlaceholder}
-                        className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') handleAddMember()
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddMember}
-                        disabled={!newMemberName.trim() || !newMemberIdentity.trim()}
-                        className="self-end text-[10px] uppercase tracking-[0.2em] text-stone-900 hover:text-stone-500 disabled:text-stone-300 transition-colors"
-                      >
-                        {copy.confirmLabel}
-                      </button>
-                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingMember(true)}
+                      className="col-span-2 aspect-[3/2] border border-dashed border-stone-200 text-stone-300 hover:border-stone-400 hover:text-stone-500 hover:bg-stone-50 transition-all duration-500 flex flex-col items-center justify-center gap-4 group"
+                    >
+                      <Plus className="h-6 w-6 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[10px] uppercase tracking-[0.2em]">{copy.addMemberButton}</span>
+                    </button>
+                  )
+                ) : familyMembers.length > 0 ? (
+                  <div className="col-span-2 sm:col-span-4 text-center text-xs uppercase tracking-[0.2em] text-stone-400">
+                    {copy.ownerOnlyInviteHint}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsAddingMember(true)}
-                    className="col-span-2 aspect-[3/2] border border-dashed border-stone-200 text-stone-300 hover:border-stone-400 hover:text-stone-500 hover:bg-stone-50 transition-all duration-500 flex flex-col items-center justify-center gap-4 group"
-                  >
-                    <Plus className="h-6 w-6 opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <span className="text-[10px] uppercase tracking-[0.2em]">{copy.addMemberButton}</span>
-                  </button>
-                )}
+                ) : null}
               </div>
 
               <div className="mt-16 flex justify-center">
                 <button
                   onClick={() => setView(shouldShowIntro ? 'intro' : 'dashboard')}
-                  disabled={!selectedMember}
+                  disabled={!sessionUser}
                   className={`group relative flex items-center gap-4 px-12 py-4 transition-all duration-500
-                    ${!selectedMember 
+                    ${!sessionUser 
                       ? 'opacity-0 pointer-events-none' 
                       : 'opacity-100'
                     }`}
@@ -1169,7 +1457,8 @@ function App() {
                 )}
               </AnimatePresence>
             </motion.div>
-          )}          {view === 'dashboard' && (
+          )}
+          {view === 'dashboard' && (
             <motion.div
               key="dashboard"
               initial={{ opacity: 0 }}
@@ -1181,7 +1470,7 @@ function App() {
               <header className="relative flex items-center justify-between px-8 py-6 bg-surface-50 border-b border-stone-200">
                 <div className="flex items-center gap-6">
                   <button
-                    onClick={() => setView('landing')}
+                    onClick={() => setView('identity')}
                     className="text-stone-400 hover:text-stone-900 transition-colors"
                   >
                     <ChevronLeft size={20} strokeWidth={1.5} />
@@ -1225,7 +1514,7 @@ function App() {
                   <div className="hidden items-center gap-3 text-xs tracking-widest uppercase text-stone-500 sm:flex">
                     <span className="w-2 h-2 rounded-full bg-stone-300" />
                     <span>
-                      {copy.identityLabelPrefix} {selectedMember ? senderLabel : copy.identityUnsetLabel}
+                      {copy.identityLabelPrefix} {sessionUser ? senderLabel : copy.identityUnsetLabel}
                     </span>
                     <button
                       onClick={() => setView('identity')}
@@ -1237,12 +1526,19 @@ function App() {
                   <button
                     onClick={() =>
                       activeFamilyId &&
-                      queryClient.invalidateQueries({ queryKey: ['memory', activeFamilyId] })
+                      authToken &&
+                      queryClient.invalidateQueries({ queryKey: ['memory', activeFamilyId, authToken] })
                     }
                     className="text-stone-400 hover:text-stone-900 transition-colors"
                     title={copy.refreshTooltip}
                   >
                     <RefreshCcw size={18} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="text-[10px] uppercase tracking-[0.25em] text-stone-400 hover:text-stone-900 transition-colors"
+                  >
+                    {copy.logoutLabel}
                   </button>
                 </div>
               </header>
@@ -1317,7 +1613,10 @@ function App() {
                             <button
                               onClick={handleSendMessage}
                               disabled={
-                                chatMutation.isPending || !chatDraft.trim() || !selectedMember
+                                chatMutation.isPending ||
+                                !chatDraft.trim() ||
+                                !sessionUser ||
+                                !authToken
                               }
                               className="absolute right-0 top-4 text-stone-900 hover:text-stone-600 disabled:text-stone-300 transition-colors"
                             >

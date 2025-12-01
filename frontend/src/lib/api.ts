@@ -1,59 +1,77 @@
 import type {
+  AuthResponse,
   ChatResponse,
-  CreateFamilyPayload,
   Family,
+  FamilyMember,
   HealthStatus,
+  InviteMemberPayload,
+  LoginPayload,
   MemorySnapshot,
   MessagePayload,
-  UpdateFamilyPayload,
+  ProfileResponse,
+  SignupPayload,
 } from '../types'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ??
+  (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000')
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
     ...init,
   })
 
+  const text = await response.text()
+  const parsed = text ? JSON.parse(text) : undefined
+
   if (!response.ok) {
-    const detail = await response.text()
+    const detail = parsed?.detail ?? parsed?.message ?? text
     throw new Error(detail || `Request to ${path} failed: ${response.status}`)
   }
 
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  const text = await response.text()
-  return text ? (JSON.parse(text) as T) : ((undefined as unknown) as T)
+  return parsed as T
 }
 
 export const api = {
   fetchHealth: (): Promise<HealthStatus> => request('/health'),
-  fetchFamilies: (): Promise<Family[]> => request('/families'),
-  createFamily: (payload: CreateFamilyPayload): Promise<Family> =>
-    request('/families', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  updateFamily: (familyId: string, payload: UpdateFamilyPayload): Promise<Family> =>
-    request(`/families/${familyId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    }),
-  deleteFamily: (familyId: string): Promise<void> =>
-    request(`/families/${familyId}`, {
-      method: 'DELETE',
-    }),
-  chatWithFamily: (familyId: string, payload: MessagePayload): Promise<ChatResponse> =>
-    request(`/families/${familyId}/messages`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-  fetchMemory: (familyId: string): Promise<MemorySnapshot> =>
-    request(`/families/${familyId}/memory`),
+  signup: (payload: SignupPayload): Promise<AuthResponse> =>
+    request('/auth/signup', { method: 'POST', body: JSON.stringify(payload) }),
+  login: (payload: LoginPayload): Promise<AuthResponse> =>
+    request('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  fetchProfile: (token: string): Promise<ProfileResponse> => request('/me', undefined, token),
+  fetchFamily: (token: string): Promise<Family> => request('/families/me', undefined, token),
+  fetchFamilies: (token: string): Promise<Family[]> => request('/families', undefined, token),
+  chatWithFamily: (
+    familyId: string,
+    payload: MessagePayload,
+    token: string,
+  ): Promise<ChatResponse> =>
+    request(
+      `/families/${familyId}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      token,
+    ),
+  fetchMemory: (familyId: string, token: string): Promise<MemorySnapshot> =>
+    request(`/families/${familyId}/memory`, undefined, token),
+  inviteMember: (
+    familyId: string,
+    payload: InviteMemberPayload,
+    token: string,
+  ): Promise<FamilyMember> =>
+    request(
+      `/families/${familyId}/members`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+      token,
+    ),
 }

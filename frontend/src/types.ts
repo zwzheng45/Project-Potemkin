@@ -1,25 +1,30 @@
 export type FamilyMember = {
+  user_id: string
   name: string
-  identity: string
+  email: string
+  role: string
 }
 
 export type Family = {
   family_id: string
   name: string
   description: string
-  task_price?: number
+  language: string
+  owner_id?: string | null
   members: FamilyMember[]
-  last_active_at?: string
 }
 
 export type MemorySnapshot = {
   stm: string[]
   ltm: string[]
   profile: string[]
+  user_stm?: string[]
 }
 
 export type ChatResponse = {
   family_id: string
+  user_id: string
+  user_name: string
   reply: string
   context_used: string
   memory: MemorySnapshot
@@ -32,23 +37,42 @@ export type HealthStatus = {
   families?: number
 }
 
-export type CreateFamilyPayload = {
-  name: string
+export type SignupPayload = {
+  family_name: string
   description?: string
+  language?: string
   family_id?: string
   task_price?: number
-  members?: FamilyMember[]
+  user_name: string
+  email: string
+  password: string
 }
 
-export type UpdateFamilyPayload = {
-  description?: string
-  task_price?: number
-  members?: FamilyMember[]
+export type LoginPayload = {
+  email: string
+  password: string
+}
+
+export type InviteMemberPayload = {
+  name: string
+  email: string
+  password: string
+  role?: string
 }
 
 export type MessagePayload = {
-  sender: string
   content: string
+}
+
+export type AuthResponse = {
+  token: string
+  user: FamilyMember
+  family: Family
+}
+
+export type ProfileResponse = {
+  user: FamilyMember
+  family: Family
 }
 
 export type ChatMessage = {
