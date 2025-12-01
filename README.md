@@ -8,6 +8,7 @@ An on-chain family companion built on Unibase’s Membase memory layer. Every fa
 - **On-chain sovereignty (optional)**: With BNB Testnet creds, each family gets an on-chain task/space and the service agent buys access.
 - **Cross-device ready**: Hub sync + local persistence make memories reusable across devices or third-party agents.
 - **Multi-language output**: Pick a preferred language per family (e.g., `en/zh/es/fr/ja`); inputs can mix languages, outputs follow the family setting.
+- **Accounts & auth**: Public-service ready with signup/login, bearer tokens, per-family members, and per-user chat logs (while sharing family memory).
 - **FastAPI out of the box**: Endpoints for family registration, chat, and memory snapshots.
 
 ## Quickstart
@@ -32,28 +33,53 @@ uvicorn family_companion.server:app --host 0.0.0.0 --port 8000
 - Set `language` (ISO code like `en`/`zh`/`es`/`fr`/`ja`) when registering a family; replies follow that language.
 
 ## API Examples
-Register a family (custom `family_id` optional; slug is auto-generated otherwise):
+Create a family + owner account:
 ```bash
-curl -X POST http://localhost:8000/families \
+curl -X POST http://localhost:8000/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{"name":"Li Family","description":"Loves weekend camping; child is 8.","language":"en"}'
+  -d '{
+    "family_name":"Li Family",
+    "description":"Loves weekend camping; child is 8.",
+    "language":"en",
+    "user_name":"Mom",
+    "email":"mom@example.com",
+    "password":"strong-pass"
+  }'
 ```
 
-Chat and store memory:
+Login (reuse the returned token for all authenticated calls):
 ```bash
-curl -X POST http://localhost:8000/families/li/messages \
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"sender":"Mom","content":"Where should we take the kid this weekend?"}'
+  -d '{"email":"mom@example.com","password":"strong-pass"}' | jq -r .token)
 ```
 
-Check memory snapshot (latest STM, LTM, profile):
+Invite another family member (owner only):
 ```bash
-curl http://localhost:8000/families/li/memory
+curl -X POST http://localhost:8000/families/li-family/members \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Dad","email":"dad@example.com","password":"pass"}'
 ```
 
-List families:
+Chat as the logged-in user (per-user chat log + shared family memory):
 ```bash
-curl http://localhost:8000/families
+curl -X POST http://localhost:8000/families/li-family/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"Where should we take the kid this weekend?"}'
+```
+
+Check memory snapshot (includes `user_stm` for the caller and shared family LTM/profile):
+```bash
+curl http://localhost:8000/families/li-family/memory \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Get your family (no global listing; `/families` returns only your family):
+```bash
+curl http://localhost:8000/families \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## Directory Tour

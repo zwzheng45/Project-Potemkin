@@ -3,6 +3,7 @@ import re
 from typing import Dict, Optional
 
 from family_companion.agent import FamilyAgent
+from family_companion.auth import UserAccount
 from family_companion.chain import FamilyChainAdapter
 from family_companion.memory import FamilyMemoryManager
 from family_companion.state import FamilyStateStore
@@ -50,10 +51,14 @@ class FamilyService:
         family_id: Optional[str] = None,
         task_price: Optional[int] = None,
         language: str = "zh",
+        owner_id: Optional[str] = None,
+        allow_existing: bool = False,
     ) -> FamilyAgent:
         fid = family_id or _slugify(name)
         if fid in self.agents:
-            return self.agents[fid]
+            if allow_existing:
+                return self.agents[fid]
+            raise ValueError(f"Family {fid} already exists.")
 
         agent = FamilyAgent(
             family_id=fid,
@@ -74,6 +79,7 @@ class FamilyService:
                 "name": name,
                 "description": agent.description,
                 "language": agent.language,
+                **({"owner_id": owner_id} if owner_id else {}),
             },
         )
         logger.info("Registered new family agent %s (%s)", fid, name)
@@ -87,11 +93,53 @@ class FamilyService:
             raise KeyError(f"Family {family_id} not found, register it first.")
         return self.agents[family_id]
 
-    def chat(self, family_id: str, sender: str, content: str) -> Dict[str, object]:
-        agent = self.get_family(family_id)
-        return agent.chat(sender=sender, content=content)
+    def _members_for_family(self, family_id: str) -> Dict[str, UserAccount]:
+        members = self.state.list_family_members(family_id)
+        hydrated: Dict[str, UserAccount] = {}
+        for uid, payload in members.items():
+            hydrated[uid] = UserAccount(
+                user_id=uid,
+                family_id=payload["family_id"],
+                email=payload["email"],
+                name=payload.get("name", payload["email"]),
+                role=payload.get("role", "member"),
+            )
+        return hydrated
 
-    def memory_snapshot(self, family_id: str) -> Dict[str, object]:
+    def chat(self, family_id: str, user: UserAccount, content: str) -> Dict[str, object]:
+        if user.family_id != family_id:
+            raise PermissionError("User cannot chat outside their family.")
+        agent = self.get_family(family_id)
+        members = self._members_for_family(family_id)
+        return agent.chat(user=user, content=content, members=members)
+
+    def memory_snapshot(self, family_id: str, user: UserAccount) -> Dict[str, object]:
         # Ensure the family exists before exposing memories
+        if user.family_id != family_id:
+            raise PermissionError("User cannot access another family's memory.")
         self.get_family(family_id)
-        return self.memory.snapshot(family_id)
+        return self.memory.snapshot(family_id, user_id=user.user_id)
+
+    def family_detail(self, family_id: str, user: UserAccount) -> Dict[str, object]:
+        if user.family_id != family_id:
+            raise PermissionError("User cannot access another family.")
+        family_meta = self.state.get_family(family_id)
+        if not family_meta:
+            raise KeyError(f"Family {family_id} not found, register it first.")
+        members = self._members_for_family(family_id)
+        return {
+            "family_id": family_id,
+            "name": family_meta.get("name", family_id),
+            "description": family_meta.get("description", ""),
+            "language": family_meta.get("language", "zh"),
+            "owner_id": family_meta.get("owner_id"),
+            "members": [
+                {
+                    "user_id": m.user_id,
+                    "name": m.name,
+                    "email": m.email,
+                    "role": m.role,
+                }
+                for m in members.values()
+            ],
+        }

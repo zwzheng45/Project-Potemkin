@@ -8,6 +8,7 @@
 - **链上主权（可选）**：配置 BNB Testnet 钱包后，为家庭创建链上空间，并为服务 Agent 购买权限。
 - **跨设备复用**：Hub 同步 + 本地持久化，便于在手机、网页或第三方 Agent 复用记忆。
 - **多语言**：家庭级 `language`（如 `en/zh/es/fr/ja`），输入可混合，输出遵循该语言。
+- **账户与认证**：面向公众的登录注册，Bearer Token 保护；家庭下可有多个成员，Agent 共享家庭记忆但每个用户有独立聊天记录。
 - **开箱即用**：FastAPI 提供家庭注册、聊天、记忆快照接口。
 
 ## 快速开始
@@ -32,28 +33,53 @@ uvicorn family_companion.server:app --host 0.0.0.0 --port 8000
 - 注册家庭时传入 `language`（ISO 简码，如 `zh`/`en`/`es`/`fr`/`ja`），回复将使用该语言。
 
 ## API 示例
-注册家庭（可自定义 family_id，默认生成 slug）：
+注册家庭 + 创建拥有者账户：
 ```bash
-curl -X POST http://localhost:8000/families \
+curl -X POST http://localhost:8000/auth/signup \
   -H "Content-Type: application/json" \
-  -d '{"name":"Li 家庭","description":"周末爱露营，孩子 8 岁。","language":"zh"}'
+  -d '{
+    "family_name":"Li 家庭",
+    "description":"周末爱露营，孩子 8 岁。",
+    "language":"zh",
+    "user_name":"妈妈",
+    "email":"mom@example.com",
+    "password":"strong-pass"
+  }'
 ```
 
-聊天写入记忆：
+登录获取 Token：
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"mom@example.com","password":"strong-pass"}' | jq -r .token)
+```
+
+家庭拥有者邀请新成员：
+```bash
+curl -X POST http://localhost:8000/families/li/members \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"爸爸","email":"dad@example.com","password":"pass"}'
+```
+
+聊天（自动记录为该用户的独立聊天记录，并与家庭长短期记忆融合）：
 ```bash
 curl -X POST http://localhost:8000/families/li/messages \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"sender":"妈妈","content":"周末带孩子去哪玩？"}'
+  -d '{"content":"周末带孩子去哪玩？"}'
 ```
 
-查看记忆快照（STM/LTM/Profile）：
+查看记忆快照（返回调用者的 `user_stm` + 家庭 LTM/Profile）：
 ```bash
-curl http://localhost:8000/families/li/memory
+curl http://localhost:8000/families/li/memory \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-查看已注册家庭：
+查看所属家庭（没有全量 /families 列表，返回自己家庭信息）：
 ```bash
-curl http://localhost:8000/families
+curl http://localhost:8000/families \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ## 目录概览

@@ -230,14 +230,14 @@ class LTMemory:
             return 
         for msgstring in msgstrings:
             try:
-                logging.debug("got msg:", msgstring)
+                logging.debug("got msg: %s", msgstring)
                 json_msg = json.loads(msgstring)
                 # check json_msg is a Message dict
                 if isinstance(json_msg, dict) and "id" in json_msg and "name" in json_msg:
                     msg = Message.from_dict(json_msg)
                     memory.add(conversation_id, msg, from_hub=True)
                 else:
-                    logging.debug("invalid message format:", json_msg)
+                    logging.debug("invalid message format: %s", json_msg)
             except Exception as e:
                 logging.error(f"Error loading message: {e}")
         
@@ -251,7 +251,7 @@ class LTMemory:
         """
         conversations = hub_client.list_conversations(self._membase_account)
         if conversations and isinstance(conversations, list):
-            logging.info("remote conversations:", conversations)
+            logging.info("remote conversations: %s", conversations)
             for conv_id in conversations:
                 self.load_from_hub(conv_id)
         else:
