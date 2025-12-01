@@ -3,6 +3,7 @@ from typing import Dict, List
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.middleware.cors import CORSMiddleware
 
 from family_companion.auth import AuthService, UserAccount
 from family_companion.schemas import (
@@ -38,6 +39,14 @@ app = FastAPI(
     title="Unibase Family Companion",
     description="链上家庭陪伴AI：每个家庭拥有独立的长期记忆与画像。",
     version="0.2.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
