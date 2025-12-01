@@ -9,9 +9,9 @@ import {
   ChevronLeft,
   Info,
   Loader2,
-  PenLine,
   Plus,
   RefreshCcw,
+  Settings,
   Trash2,
   X,
 } from 'lucide-react'
@@ -460,6 +460,7 @@ function App() {
     description: '',
     task_price: '',
   })
+  const [dashboardView, setDashboardView] = useState<'chat' | 'files'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
 
   useEffect(() => {
@@ -1239,7 +1240,7 @@ function App() {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="flex h-screen flex-col bg-surface-50"
             >
-              <header className="flex items-center justify-between px-8 py-6 bg-surface-50 border-b border-stone-200">
+              <header className="relative flex items-center justify-between px-8 py-6 bg-surface-50 border-b border-stone-200">
                 <div className="flex items-center gap-6">
                   <button
                     onClick={() => setView('landing')}
@@ -1256,6 +1257,27 @@ function App() {
                     </p>
                   </div>
                 </div>
+
+                {/* View Toggle */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-8">
+                  <button
+                    onClick={() => setDashboardView('chat')}
+                    className={`text-xs uppercase tracking-[0.2em] transition-colors ${
+                      dashboardView === 'chat' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    Conversation
+                  </button>
+                  <button
+                    onClick={() => setDashboardView('files')}
+                    className={`text-xs uppercase tracking-[0.2em] transition-colors ${
+                      dashboardView === 'files' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
+                    }`}
+                  >
+                    File Management
+                  </button>
+                </div>
+
                 <div className="flex items-center gap-4">
                   <div className="hidden items-center gap-3 text-xs tracking-widest uppercase text-stone-500 sm:flex">
                     <span className="w-2 h-2 rounded-full bg-stone-300" />
@@ -1279,162 +1301,200 @@ function App() {
                   >
                     <RefreshCcw size={18} strokeWidth={1.5} />
                   </button>
-                  <button
-                    onClick={() => setIsEditingFamily(true)}
-                    className="flex items-center gap-2 rounded-full border border-stone-200 px-4 py-2 text-xs uppercase tracking-[0.2em] text-stone-600 transition hover:border-stone-900 hover:text-stone-900"
-                    title={copy.editTooltip}
-                  >
-                    <PenLine className="h-3.5 w-3.5" />
-                    {copy.editLabel}
-                  </button>
-                  <button
-                    onClick={handleDeleteFamily}
-                    disabled={deleteFamilyMutation.isPending}
-                    className="flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-xs uppercase tracking-[0.2em] text-rose-500 transition hover:border-rose-400 hover:text-rose-600 disabled:opacity-50"
-                    title={copy.deleteTooltip}
-                  >
-                    {deleteFamilyMutation.isPending ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
-                    {copy.removeLabel}
-                  </button>
                 </div>
               </header>
 
               <main className="flex flex-1 overflow-hidden">
-                {/* Chat Area */}
-                <div className="flex flex-1 flex-col border-r border-stone-200 bg-surface-50">
-                  <div className="flex-1 overflow-y-auto p-8">
-                    {currentChat.length === 0 ? (
-                      <div className="flex h-full flex-col items-center justify-center text-stone-300">
-                        <Bot size={32} strokeWidth={1} className="mb-6 opacity-50" />
-                        <p className="font-display italic text-2xl text-stone-400">
-                          {interpolate(copy.chatEmptyState, {
-                            family: selectedFamily?.name ?? copy.brandTagline,
-                          })}
-                        </p>
+                {dashboardView === 'chat' ? (
+                  <>
+                    {/* Chat Area */}
+                    <div className="flex flex-1 flex-col border-r border-stone-200 bg-surface-50">
+                      <div className="flex-1 overflow-y-auto p-8">
+                        {currentChat.length === 0 ? (
+                          <div className="flex h-full flex-col items-center justify-center text-stone-300">
+                            <Bot size={32} strokeWidth={1} className="mb-6 opacity-50" />
+                            <p className="font-display italic text-2xl text-stone-400">
+                              {interpolate(copy.chatEmptyState, {
+                                family: selectedFamily?.name ?? copy.brandTagline,
+                              })}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-12 max-w-3xl mx-auto">
+                            {currentChat.map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={clsx(
+                                  'flex gap-6',
+                                  msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
+                                )}
+                              >
+                                <div
+                                  className={clsx(
+                                    'flex h-8 w-8 shrink-0 items-center justify-center text-xs font-medium tracking-widest uppercase',
+                                    msg.role === 'user'
+                                      ? 'text-stone-900 border border-stone-900'
+                                      : 'text-stone-400 border border-stone-300',
+                                  )}
+                                >
+                                  {msg.role === 'user' ? copy.chatUserBadge : copy.chatAIBadge}
+                                </div>
+                                <div
+                                  className={clsx(
+                                    'max-w-[80%] text-base leading-relaxed font-light tracking-wide',
+                                    msg.role === 'user'
+                                      ? 'text-stone-900 text-right'
+                                      : 'text-stone-600',
+                                  )}
+                                >
+                                  {msg.content}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="space-y-12 max-w-3xl mx-auto">
-                        {currentChat.map((msg) => (
-                          <div
-                            key={msg.id}
-                            className={clsx(
-                              'flex gap-6',
-                              msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
-                            )}
-                          >
-                            <div
-                              className={clsx(
-                                'flex h-8 w-8 shrink-0 items-center justify-center text-xs font-medium tracking-widest uppercase',
-                                msg.role === 'user'
-                                  ? 'text-stone-900 border border-stone-900'
-                                  : 'text-stone-400 border border-stone-300',
-                              )}
+                      <div className="border-t border-stone-200 bg-surface-50 p-8">
+                        <div className="mx-auto max-w-3xl space-y-4">
+                          <div className="relative group">
+                            <input
+                              className="w-full border-b border-stone-300 bg-transparent px-0 py-4 pr-12 text-lg text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display italic"
+                              placeholder={interpolate(copy.chatPlaceholder, {
+                                sender: senderLabel || copy.guestLabel,
+                              })}
+                              value={chatDraft}
+                              onChange={(e) => setChatDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleSendMessage()
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={handleSendMessage}
+                              disabled={
+                                chatMutation.isPending || !chatDraft.trim() || !selectedMember
+                              }
+                              className="absolute right-0 top-4 text-stone-900 hover:text-stone-600 disabled:text-stone-300 transition-colors"
                             >
-                              {msg.role === 'user' ? copy.chatUserBadge : copy.chatAIBadge}
+                              {chatMutation.isPending ? (
+                                <Loader2 className="animate-spin" size={20} />
+                              ) : (
+                                <ArrowRight size={20} strokeWidth={1.5} />
+                              )}
+                            </button>
+                          </div>
+                          {chatError && <p className="text-xs text-rose-500 font-light tracking-wide">{chatError}</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Memory Sidebar */}
+                    <div className="w-96 overflow-y-auto border-l border-stone-200 bg-surface-50 p-8">
+                      <div className="mb-8 flex items-center gap-3 border-b border-stone-200 pb-4">
+                        <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-stone-400">{copy.memoryHeading}</span>
+                      </div>
+
+                      <div className="space-y-12">
+                        {/* Context */}
+                        {currentContext && (
+                          <div>
+                            <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-500">
+                              <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+                              <span>{copy.activeContextLabel}</span>
                             </div>
-                            <div
-                              className={clsx(
-                                'max-w-[80%] text-base leading-relaxed font-light tracking-wide',
-                                msg.role === 'user'
-                                  ? 'text-stone-900 text-right'
-                                  : 'text-stone-600',
+                            <p className="text-sm leading-relaxed text-stone-600 font-light italic border-l-2 border-stone-200 pl-4">
+                              "{currentContext}"
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Snapshots */}
+                        {(['stm', 'ltm', 'profile'] as const).map((key) => (
+                          <div key={key}>
+                            <p className="mb-4 text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                              {key === 'stm' && copy.shortTermHeading}
+                              {key === 'ltm' && copy.longTermHeading}
+                              {key === 'profile' && copy.profileHeading}
+                            </p>
+                            <div className="space-y-4">
+                              {currentMemory?.[key]?.length ? (
+                                currentMemory[key].map((item: string, i: number) => (
+                                  <div
+                                    key={i}
+                                    className="border-b border-stone-100 pb-3 text-sm font-light text-stone-600 leading-relaxed"
+                                  >
+                                    {item}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-[10px] uppercase tracking-widest text-stone-300 italic">
+                                  {copy.emptyMemoryLabel}
+                                </div>
                               )}
-                            >
-                              {msg.content}
                             </div>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
-                  <div className="border-t border-stone-200 bg-surface-50 p-8">
-                    <div className="mx-auto max-w-3xl space-y-4">
-                      <div className="relative group">
-                        <input
-                          className="w-full border-b border-stone-300 bg-transparent px-0 py-4 pr-12 text-lg text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display italic"
-                          placeholder={interpolate(copy.chatPlaceholder, {
-                            sender: senderLabel || copy.guestLabel,
-                          })}
-                          value={chatDraft}
-                          onChange={(e) => setChatDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault()
-                              handleSendMessage()
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={handleSendMessage}
-                          disabled={
-                            chatMutation.isPending || !chatDraft.trim() || !selectedMember
-                          }
-                          className="absolute right-0 top-4 text-stone-900 hover:text-stone-600 disabled:text-stone-300 transition-colors"
-                        >
-                          {chatMutation.isPending ? (
-                            <Loader2 className="animate-spin" size={20} />
-                          ) : (
-                            <ArrowRight size={20} strokeWidth={1.5} />
-                          )}
-                        </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 overflow-y-auto p-12 bg-surface-50">
+                    <div className="max-w-3xl mx-auto space-y-12">
+                      <div className="border-b border-stone-200 pb-8">
+                        <h3 className="text-3xl font-display italic text-stone-900 mb-2">Family Settings</h3>
+                        <p className="text-stone-500 font-light">Manage your family profile and data.</p>
                       </div>
-                      {chatError && <p className="text-xs text-rose-500 font-light tracking-wide">{chatError}</p>}
+
+                      {/* Family Details */}
+                      <div className="space-y-8">
+                         <div className="grid grid-cols-2 gap-8">
+                            <div>
+                                <label className="block text-[10px] uppercase tracking-widest text-stone-400 mb-2">Family Name</label>
+                                <p className="text-xl font-display text-stone-800">{selectedFamily?.name}</p>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] uppercase tracking-widest text-stone-400 mb-2">Family ID</label>
+                                <p className="text-xl font-display text-stone-800">{selectedFamily?.family_id}</p>
+                            </div>
+                         </div>
+                         <div>
+                            <label className="block text-[10px] uppercase tracking-widest text-stone-400 mb-2">Description</label>
+                            <p className="text-stone-600 font-light leading-relaxed">{selectedFamily?.description || 'No description provided.'}</p>
+                         </div>
+                         
+                         <div className="flex gap-4 pt-4">
+                            <button
+                                onClick={() => setIsEditingFamily(true)}
+                                className="flex items-center gap-2 px-6 py-3 border border-stone-200 text-stone-600 hover:border-stone-900 hover:text-stone-900 transition-colors uppercase tracking-widest text-xs"
+                            >
+                                <Settings size={16} /> Edit Details
+                            </button>
+                         </div>
+                      </div>
+
+                      {/* Danger Zone */}
+                      <div className="pt-12 border-t border-stone-200">
+                        <h4 className="text-rose-500 uppercase tracking-widest text-xs mb-6">Danger Zone</h4>
+                        <div className="bg-rose-50/50 border border-rose-100 p-8 flex items-center justify-between">
+                            <div>
+                                <h5 className="text-stone-900 font-medium mb-1">Delete Family</h5>
+                                <p className="text-stone-500 text-sm font-light">Permanently remove this family and all associated data.</p>
+                            </div>
+                            <button
+                                onClick={handleDeleteFamily}
+                                disabled={deleteFamilyMutation.isPending}
+                                className="flex items-center gap-2 px-6 py-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:border-rose-300 transition-colors uppercase tracking-widest text-xs"
+                            >
+                                {deleteFamilyMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+                                Delete Family
+                            </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Memory Sidebar */}
-                <div className="w-96 overflow-y-auto border-l border-stone-200 bg-surface-50 p-8">
-                  <div className="mb-8 flex items-center gap-3 border-b border-stone-200 pb-4">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-stone-400">{copy.memoryHeading}</span>
-                  </div>
-
-                  <div className="space-y-12">
-                    {/* Context */}
-                    {currentContext && (
-                      <div>
-                        <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-500">
-                          <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
-                          <span>{copy.activeContextLabel}</span>
-                        </div>
-                        <p className="text-sm leading-relaxed text-stone-600 font-light italic border-l-2 border-stone-200 pl-4">
-                          "{currentContext}"
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Snapshots */}
-                    {(['stm', 'ltm', 'profile'] as const).map((key) => (
-                      <div key={key}>
-                        <p className="mb-4 text-[10px] uppercase tracking-[0.2em] text-stone-400">
-                          {key === 'stm' && copy.shortTermHeading}
-                          {key === 'ltm' && copy.longTermHeading}
-                          {key === 'profile' && copy.profileHeading}
-                        </p>
-                        <div className="space-y-4">
-                          {currentMemory?.[key]?.length ? (
-                            currentMemory[key].map((item: string, i: number) => (
-                              <div
-                                key={i}
-                                className="border-b border-stone-100 pb-3 text-sm font-light text-stone-600 leading-relaxed"
-                              >
-                                {item}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-[10px] uppercase tracking-widest text-stone-300 italic">
-                              {copy.emptyMemoryLabel}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                )}
               </main>
             </motion.div>
           )}
