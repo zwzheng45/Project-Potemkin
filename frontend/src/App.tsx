@@ -31,6 +31,7 @@ import type {
 type Copy = {
   languageName: string
   languageSelectorLabel: string
+  backButtonLabel: string
   brandTagline: string
   heroTitleLine1: string
   heroTitleLine2: string
@@ -88,12 +89,15 @@ type Copy = {
   apiConnecting: string
   apiFailed: string
   identityUnsetLabel: string
+  conversationTabLabel: string
+  fileManagementTabLabel: string
 }
 
 const translations = {
   en: {
     languageName: 'English',
     languageSelectorLabel: 'Language',
+    backButtonLabel: 'Back',
     brandTagline: 'Unibase Family Companion',
     heroTitleLine1: 'Chain Memory',
     heroTitleLine2: 'Warm Companion',
@@ -151,10 +155,13 @@ const translations = {
     apiConnecting: 'API Connecting...',
     apiFailed: 'API Failed to Fetch',
     identityUnsetLabel: 'Unset',
+    conversationTabLabel: 'Conversation',
+    fileManagementTabLabel: 'File Management',
   },
   zh: {
     languageName: '中文',
     languageSelectorLabel: '语言',
+    backButtonLabel: '返回',
     brandTagline: 'Unibase 家庭陪伴者',
     heroTitleLine1: '链上记忆',
     heroTitleLine2: '温暖陪伴',
@@ -212,10 +219,13 @@ const translations = {
     apiConnecting: 'API 连接中...',
     apiFailed: 'API 连接失败',
     identityUnsetLabel: '未设置',
+    conversationTabLabel: '对话',
+    fileManagementTabLabel: '文件管理',
   },
   fr: {
     languageName: 'Français',
     languageSelectorLabel: 'Langue',
+    backButtonLabel: 'Retour',
     brandTagline: 'Compagnon Familial Unibase',
     heroTitleLine1: 'Mémoire sur chaîne',
     heroTitleLine2: 'Compagnon chaleureux',
@@ -273,10 +283,13 @@ const translations = {
     apiConnecting: 'API en connexion...',
     apiFailed: 'API indisponible',
     identityUnsetLabel: 'Non défini',
+    conversationTabLabel: 'Conversation',
+    fileManagementTabLabel: 'Gestion des fichiers',
   },
   de: {
     languageName: 'Deutsch',
     languageSelectorLabel: 'Sprache',
+    backButtonLabel: 'Zurück',
     brandTagline: 'Unibase Familienbegleiter',
     heroTitleLine1: 'Kettengedächtnis',
     heroTitleLine2: 'Warmer Begleiter',
@@ -334,10 +347,13 @@ const translations = {
     apiConnecting: 'API verbindet...',
     apiFailed: 'API-Verbindung fehlgeschlagen',
     identityUnsetLabel: 'Nicht gesetzt',
+    conversationTabLabel: 'Konversation',
+    fileManagementTabLabel: 'Dateiverwaltung',
   },
   ja: {
     languageName: '日本語',
     languageSelectorLabel: '言語',
+    backButtonLabel: '戻る',
     brandTagline: 'Unibase ファミリーコンパニオン',
     heroTitleLine1: 'チェーンメモリー',
     heroTitleLine2: 'あたたかな相棒',
@@ -395,6 +411,8 @@ const translations = {
     apiConnecting: 'API 接続中...',
     apiFailed: 'API 接続失敗',
     identityUnsetLabel: '未設定',
+    conversationTabLabel: '会話',
+    fileManagementTabLabel: 'ファイル管理',
   },
 } as const satisfies Record<string, Copy>
 
@@ -429,6 +447,35 @@ const DecorativeBackground = () => (
     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_rgba(0,0,0,0.02),_transparent_60%)]" />
     <div className="pointer-events-none absolute top-0 left-0 w-full h-full opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/concrete-wall.png')]" />
   </>
+)
+
+type LanguageSelectorProps = {
+  language: SupportedLanguage
+  label: string
+  onChange: (language: SupportedLanguage) => void
+  className?: string
+}
+
+const LanguageSelector = ({ language, label, onChange, className }: LanguageSelectorProps) => (
+  <div
+    className={clsx(
+      'flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-[10px] uppercase tracking-[0.3em] text-stone-500 shadow-sm backdrop-blur',
+      className,
+    )}
+  >
+    <span>{label}</span>
+    <select
+      value={language}
+      onChange={(event) => onChange(event.target.value as SupportedLanguage)}
+      className="bg-transparent text-[10px] uppercase tracking-[0.3em] text-stone-900 outline-none"
+    >
+      {languageOptions.map((option) => (
+        <option key={option.code} value={option.code} className="text-stone-800">
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </div>
 )
 
 function App() {
@@ -797,22 +844,15 @@ function App() {
     <div className="relative min-h-screen overflow-hidden bg-surface-50 text-stone-800 selection:bg-stone-200">
       <DecorativeBackground />
       <div className="relative z-10 flex min-h-screen flex-col">
-        <div className="fixed right-6 top-6 z-30">
-          <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/80 px-4 py-2 text-[10px] uppercase tracking-[0.3em] text-stone-500 shadow-sm backdrop-blur">
-            <span>{copy.languageSelectorLabel}</span>
-            <select
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as SupportedLanguage)}
-              className="bg-transparent text-[10px] uppercase tracking-[0.3em] text-stone-900 outline-none"
-            >
-              {languageOptions.map((option) => (
-                <option key={option.code} value={option.code} className="text-stone-800">
-                  {option.label}
-                </option>
-              ))}
-            </select>
+        {view !== 'dashboard' && (
+          <div className="fixed right-6 top-6 z-30">
+            <LanguageSelector
+              language={language}
+              label={copy.languageSelectorLabel}
+              onChange={setLanguage}
+            />
           </div>
-        </div>
+        )}
         {globalError && (
           <div className="mx-auto mt-6 w-[90%] max-w-2xl rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600 shadow-sm">
             {globalError}
@@ -1034,8 +1074,20 @@ function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20, filter: 'blur(5px)' }}
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-1 flex-col items-center justify-center px-6"
+              className="relative flex w-full flex-1 flex-col items-center justify-center px-6"
             >
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFamilyId(null)
+                  setSelectedMember(null)
+                  setView('landing')
+                }}
+                className="absolute left-6 top-6 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-stone-400 transition-colors hover:text-stone-900"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>{copy.backButtonLabel}</span>
+              </button>
               <div className="mb-16 text-center">
                 <span className="text-[10px] tracking-[0.3em] uppercase text-stone-400 font-medium block mb-4">{copy.identitySelectionLabel}</span>
                 <h2 className="text-5xl font-display font-normal text-stone-900 italic mb-4">{copy.identitySelectionTitle}</h2>
@@ -1266,7 +1318,7 @@ function App() {
                       dashboardView === 'chat' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
-                    Conversation
+                    {copy.conversationTabLabel}
                   </button>
                   <button
                     onClick={() => setDashboardView('files')}
@@ -1274,11 +1326,16 @@ function App() {
                       dashboardView === 'files' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
-                    File Management
+                    {copy.fileManagementTabLabel}
                   </button>
                 </div>
 
                 <div className="flex items-center gap-4">
+                  <LanguageSelector
+                    language={language}
+                    label={copy.languageSelectorLabel}
+                    onChange={setLanguage}
+                  />
                   <div className="hidden items-center gap-3 text-xs tracking-widest uppercase text-stone-500 sm:flex">
                     <span className="w-2 h-2 rounded-full bg-stone-300" />
                     <span>
