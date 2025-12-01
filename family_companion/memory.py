@@ -35,6 +35,9 @@ class FamilyMemoryManager:
         self._lt_memory_cls = LTMemory
         self._memories: Dict[str, LTMemory] = {}
 
+    def _user_conversation_id(self, family_id: str, user_id: str) -> str:
+        return f"{family_id}:{user_id}"
+
     def get_or_create(self, family_id: str) -> "LTMemory":
         if family_id in self._memories:
             return self._memories[family_id]
@@ -50,28 +53,52 @@ class FamilyMemoryManager:
         logger.info("Initialized LTMemory for family %s", family_id)
         return memory
 
-    def add_user_message(self, family_id: str, sender: str, content: str) -> Message:
+    def add_user_message(
+        self, family_id: str, user_id: str, user_name: str, content: str
+    ) -> Message:
         memory = self.get_or_create(family_id)
         msg = Message(
-            name=sender,
+            name=user_name,
             role="user",
             content=content,
-            metadata={"family_id": family_id, "speaker": sender},
+            metadata={"family_id": family_id, "speaker": user_name, "user_id": user_id},
             type="stm",
         )
         memory.add(msg, conversation_id=family_id)
+
+        # Keep a per-user conversation thread so each member has their own history view.
+        user_conv_id = self._user_conversation_id(family_id, user_id)
+        user_msg = Message(
+            name=user_name,
+            role="user",
+            content=content,
+            metadata={"family_id": family_id, "speaker": user_name, "user_id": user_id},
+            type="stm",
+        )
+        memory.add(user_msg, conversation_id=user_conv_id)
         return msg
 
-    def add_agent_message(self, family_id: str, content: str) -> Message:
+    def add_agent_message(self, family_id: str, user_id: str, content: str) -> Message:
         memory = self.get_or_create(family_id)
         msg = Message(
             name=f"{family_id}-companion",
             role="assistant",
             content=content,
-            metadata={"family_id": family_id},
+            metadata={"family_id": family_id, "user_id": user_id, "speaker": "assistant"},
             type="stm",
         )
         memory.add(msg, conversation_id=family_id)
+
+        # Mirror agent replies into the per-user conversation.
+        user_conv_id = self._user_conversation_id(family_id, user_id)
+        user_msg = Message(
+            name=f"{family_id}-companion",
+            role="assistant",
+            content=content,
+            metadata={"family_id": family_id, "user_id": user_id, "speaker": "assistant"},
+            type="stm",
+        )
+        memory.add(user_msg, conversation_id=user_conv_id)
         return msg
 
     def context(self, family_id: str, recent_n: int = 8) -> List[Message]:
@@ -83,10 +110,28 @@ class FamilyMemoryManager:
             include_profile=True,
         )
 
-    def snapshot(self, family_id: str) -> dict:
+    def user_context(self, family_id: str, user_id: str, recent_n: int = 8) -> List[Message]:
         memory = self.get_or_create(family_id)
-        return {
-            "stm": [m.content for m in memory.get(family_id, recent_n=6)],
+        return memory.get(
+            conversation_id=self._user_conversation_id(family_id, user_id),
+            recent_n=recent_n,
+            include_ltm=False,
+            include_profile=False,
+        )
+
+    def snapshot(self, family_id: str, user_id: Optional[str] = None) -> dict:
+        memory = self.get_or_create(family_id)
+        snapshot = {
+            "stm": [m.content for m in memory.get(conversation_id=family_id, recent_n=6)],
             "ltm": [m.content for m in memory.get_ltm(family_id, recent_n=3)],
             "profile": [m.content for m in memory.get_profile(recent_n=1)],
         }
+        if user_id:
+            snapshot["user_stm"] = [
+                m.content
+                for m in memory.get(
+                    self._user_conversation_id(family_id, user_id),
+                    recent_n=6,
+                )
+            ]
+        return snapshot
