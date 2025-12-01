@@ -15,7 +15,12 @@ import {
 import { api } from './lib/api'
 import type { ChatMessage, MemorySnapshot } from './types'
 
-const defaultSenderOptions: string[] = []
+type IdentityOption = {
+  name: string
+  identity: string
+}
+
+const defaultSenderOptions: IdentityOption[] = []
 
 const DecorativeBackground = () => (
   <>
@@ -37,16 +42,18 @@ function App() {
     family_id: '',
     task_price: '',
   })
-  const [availableSenders, setAvailableSenders] = useState<string[]>(defaultSenderOptions)
+  const [availableSenders, setAvailableSenders] = useState<IdentityOption[]>(defaultSenderOptions)
   const [isAddingMember, setIsAddingMember] = useState(false)
   const [newMemberName, setNewMemberName] = useState('')
-  const [sender, setSender] = useState<string>('')
+  const [newMemberIdentity, setNewMemberIdentity] = useState('')
+  const [selectedMember, setSelectedMember] = useState<IdentityOption | null>(null)
   const [chatDraft, setChatDraft] = useState('')
   const [chatLogs, setChatLogs] = useState<Record<string, ChatMessage[]>>({})
   const [memoryCache, setMemoryCache] = useState<Record<string, MemorySnapshot>>({})
   const [contextCache, setContextCache] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
+  const [shouldShowIntro, setShouldShowIntro] = useState(false)
 
   useEffect(() => {
     if (!selectedFamilyId) {
@@ -104,6 +111,7 @@ function App() {
       setFamilyForm({ name: '', description: '', family_id: '', task_price: '' })
       queryClient.setQueryData(['families'], (old: any) => [...(old || []), family])
       setSelectedFamilyId(family.family_id)
+      setShouldShowIntro(true)
       setView('identity')
     },
     onError: () => {
@@ -112,7 +120,15 @@ function App() {
   })
 
   const chatMutation = useMutation({
-    mutationFn: async ({ familyId, content }: { familyId: string; content: string }) => {
+    mutationFn: async ({
+      familyId,
+      content,
+      sender,
+    }: {
+      familyId: string
+      content: string
+      sender: string
+    }) => {
       try {
         return await api.chatWithFamily(familyId, { sender, content })
       } catch {
@@ -157,6 +173,9 @@ function App() {
   }, [activeFamilyId, memoryCache, memoryQuery.data])
   const currentContext = activeFamilyId ? contextCache[activeFamilyId] : undefined
   const isBackendHealthy = healthQuery.data?.status === 'ok'
+  const senderLabel = selectedMember
+    ? `${selectedMember.identity} (${selectedMember.name})`
+    : ''
 
   const handleCreateFamily = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -173,7 +192,7 @@ function App() {
   }
 
   const handleSendMessage = () => {
-    if (!activeFamilyId || !chatDraft.trim()) return
+    if (!activeFamilyId || !chatDraft.trim() || !selectedMember) return
     const content = chatDraft.trim()
     setChatDraft('')
     const pendingMessage: ChatMessage = {
@@ -186,11 +205,16 @@ function App() {
       ...prev,
       [activeFamilyId]: [...(prev[activeFamilyId] ?? []), pendingMessage],
     }))
-    chatMutation.mutate({ familyId: activeFamilyId, content })
+    chatMutation.mutate({
+      familyId: activeFamilyId,
+      content,
+      sender: `${selectedMember.identity} (${selectedMember.name})`,
+    })
   }
 
   useEffect(() => {
     if (view === 'intro') {
+      setShouldShowIntro(false)
       setIntroStep(0)
       // Sequence:
       // 0s: Start (Step 0: "Welcome")
@@ -307,6 +331,7 @@ function App() {
                         key={family.family_id}
                         onClick={() => {
                           setSelectedFamilyId(family.family_id)
+                          setShouldShowIntro(false)
                           setView('identity')
                         }}
                         className="group flex flex-col items-start gap-4 p-6 border border-transparent hover:border-stone-200 transition-all duration-500 hover:bg-white"
@@ -359,27 +384,37 @@ function App() {
               </div>
 
               <div className="grid w-full max-w-3xl grid-cols-2 gap-8 sm:grid-cols-4">
-                {availableSenders.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setSender(option)}
-                    className={`group relative aspect-[3/4] flex flex-col items-center justify-center gap-4 transition-all duration-500
-                      ${
-                        sender === option
-                          ? 'bg-stone-100'
-                          : 'bg-transparent hover:bg-stone-50'
-                      }`}
-                  >
-                    <div className={`absolute inset-0 border border-stone-200 transition-all duration-500 ${sender === option ? 'border-stone-800' : 'group-hover:border-stone-400'}`} />
-                    
-                    <span className={`text-4xl font-display italic transition-colors duration-500 ${sender === option ? 'text-stone-900' : 'text-stone-300 group-hover:text-stone-600'}`}>
-                      {option[0]}
-                    </span>
-                    <span className={`text-xs uppercase tracking-[0.2em] transition-colors duration-500 ${sender === option ? 'text-stone-900' : 'text-stone-400 group-hover:text-stone-600'}`}>
-                      {option}
-                    </span>
-                  </button>
-                ))}
+                {availableSenders.map((option, index) => {
+                  const isSelected =
+                    selectedMember?.name === option.name &&
+                    selectedMember?.identity === option.identity
+                  return (
+                    <button
+                      key={`${option.name}-${option.identity}-${index}`}
+                      onClick={() => setSelectedMember(option)}
+                      className={`group relative aspect-[3/4] flex flex-col items-center justify-center gap-4 transition-all duration-500
+                        ${
+                          isSelected
+                            ? 'bg-stone-100'
+                            : 'bg-transparent hover:bg-stone-50'
+                        }`}
+                    >
+                      <div className={`absolute inset-0 border border-stone-200 transition-all duration-500 ${isSelected ? 'border-stone-800' : 'group-hover:border-stone-400'}`} />
+
+                      <span className={`text-4xl font-display italic transition-colors duration-500 ${isSelected ? 'text-stone-900' : 'text-stone-300 group-hover:text-stone-600'}`}>
+                        {option.name.slice(0, 1)}
+                      </span>
+                      <div className="text-center space-y-1">
+                        <p className={`text-base font-display transition-colors duration-500 ${isSelected ? 'text-stone-900' : 'text-stone-500 group-hover:text-stone-700'}`}>
+                          {option.name}
+                        </p>
+                        <p className={`text-xs uppercase tracking-[0.2em] transition-colors duration-500 ${isSelected ? 'text-stone-900' : 'text-stone-400 group-hover:text-stone-600'}`}>
+                          {option.identity}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
 
                 {/* Add New Member Button */}
                 {isAddingMember ? (
@@ -400,26 +435,43 @@ function App() {
                         onChange={(e) => setNewMemberName(e.target.value)}
                         placeholder="Name..."
                         className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={newMemberIdentity}
+                        onChange={(e) => setNewMemberIdentity(e.target.value)}
+                        placeholder="Identity..."
+                        className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newMemberName.trim()) {
-                            setAvailableSenders([...availableSenders, newMemberName.trim()])
-                            setSender(newMemberName.trim())
+                          if (e.key === 'Enter' && newMemberName.trim() && newMemberIdentity.trim()) {
+                            const newOption: IdentityOption = {
+                              name: newMemberName.trim(),
+                              identity: newMemberIdentity.trim(),
+                            }
+                            setAvailableSenders([...availableSenders, newOption])
+                            setSelectedMember(newOption)
                             setNewMemberName('')
+                            setNewMemberIdentity('')
                             setIsAddingMember(false)
                           }
                         }}
-                        autoFocus
                       />
                       <button
                         onClick={() => {
-                          if (newMemberName.trim()) {
-                            setAvailableSenders([...availableSenders, newMemberName.trim()])
-                            setSender(newMemberName.trim())
+                          if (newMemberName.trim() && newMemberIdentity.trim()) {
+                            const newOption: IdentityOption = {
+                              name: newMemberName.trim(),
+                              identity: newMemberIdentity.trim(),
+                            }
+                            setAvailableSenders([...availableSenders, newOption])
+                            setSelectedMember(newOption)
                             setNewMemberName('')
+                            setNewMemberIdentity('')
                             setIsAddingMember(false)
                           }
                         }}
-                        disabled={!newMemberName.trim()}
+                        disabled={!newMemberName.trim() || !newMemberIdentity.trim()}
                         className="self-end text-[10px] uppercase tracking-[0.2em] text-stone-900 hover:text-stone-500 disabled:text-stone-300 transition-colors"
                       >
                         Confirm
@@ -439,10 +491,10 @@ function App() {
 
               <div className="mt-16 flex justify-center">
                 <button
-                  onClick={() => setView('intro')}
-                  disabled={!sender}
+                  onClick={() => setView(shouldShowIntro ? 'intro' : 'dashboard')}
+                  disabled={!selectedMember}
                   className={`group relative flex items-center gap-4 px-12 py-4 transition-all duration-500
-                    ${!sender 
+                    ${!selectedMember 
                       ? 'opacity-0 pointer-events-none' 
                       : 'opacity-100'
                     }`}
@@ -524,7 +576,7 @@ function App() {
                 <div className="flex items-center gap-8">
                   <div className="hidden items-center gap-3 text-xs tracking-widest uppercase text-stone-500 sm:flex">
                     <span className="w-2 h-2 rounded-full bg-stone-300" />
-                    <span>Identity: {sender}</span>
+                    <span>Identity: {selectedMember ? senderLabel : 'Unset'}</span>
                     <button
                       onClick={() => setView('identity')}
                       className="text-stone-900 border-b border-stone-300 hover:border-stone-900 transition-colors pb-0.5"
@@ -593,7 +645,7 @@ function App() {
                       <div className="relative group">
                         <input
                           className="w-full border-b border-stone-300 bg-transparent px-0 py-4 pr-12 text-lg text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display italic"
-                          placeholder={`Message as ${sender}...`}
+                          placeholder={`Message as ${senderLabel || 'Guest'}...`}
                           value={chatDraft}
                           onChange={(e) => setChatDraft(e.target.value)}
                           onKeyDown={(e) => {
@@ -605,7 +657,9 @@ function App() {
                         />
                         <button
                           onClick={handleSendMessage}
-                          disabled={chatMutation.isPending || !chatDraft.trim()}
+                          disabled={
+                            chatMutation.isPending || !chatDraft.trim() || !selectedMember
+                          }
                           className="absolute right-0 top-4 text-stone-900 hover:text-stone-600 disabled:text-stone-300 transition-colors"
                         >
                           {chatMutation.isPending ? (
