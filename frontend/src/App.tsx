@@ -177,17 +177,36 @@ function App() {
     ? `${selectedMember.identity} (${selectedMember.name})`
     : ''
 
+  const handleTaskPriceChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setFamilyForm((prev) => ({ ...prev, task_price: '' }))
+      return
+    }
+    const numericValue = Number(value)
+    if (Number.isNaN(numericValue)) {
+      return
+    }
+    setFamilyForm((prev) => ({
+      ...prev,
+      task_price: numericValue < 0 ? '0' : value,
+    }))
+  }
+
   const handleCreateFamily = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!familyForm.name.trim()) {
       setFormError('Please enter a family name')
       return
     }
+    const parsedTaskPrice =
+      familyForm.task_price === ''
+        ? undefined
+        : Math.max(0, Number(familyForm.task_price) || 0)
     createFamilyMutation.mutate({
       name: familyForm.name.trim(),
       description: familyForm.description.trim() || undefined,
       family_id: familyForm.family_id.trim() || undefined,
-      task_price: familyForm.task_price ? Number(familyForm.task_price) : undefined,
+      task_price: parsedTaskPrice,
     })
   }
 
@@ -292,12 +311,11 @@ function App() {
                     />
                     <input
                       type="number"
+                      min={0}
                       className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
                       placeholder="Stake (BNB)"
                       value={familyForm.task_price}
-                      onChange={(e) =>
-                        setFamilyForm((prev) => ({ ...prev, task_price: e.target.value }))
-                      }
+                      onChange={(e) => handleTaskPriceChange(e.target.value)}
                     />
                   </div>
                   {formError ? <p className="text-sm text-rose-500">{formError}</p> : null}
