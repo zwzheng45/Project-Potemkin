@@ -516,6 +516,31 @@ function App() {
   }, [language])
 
   const copy = translations[language]
+  const memorySections: Array<{
+    key: keyof MemorySnapshot
+    label: string
+    accent: string
+    dot: string
+  }> = [
+    {
+      key: 'stm',
+      label: copy.shortTermHeading,
+      accent: 'from-amber-50 to-amber-100',
+      dot: 'bg-amber-300',
+    },
+    {
+      key: 'ltm',
+      label: copy.longTermHeading,
+      accent: 'from-sky-50 to-sky-100',
+      dot: 'bg-sky-300',
+    },
+    {
+      key: 'profile',
+      label: copy.profileHeading,
+      accent: 'from-emerald-50 to-emerald-100',
+      dot: 'bg-emerald-300',
+    },
+  ]
 
   useEffect(() => {
     if (!selectedFamilyId) {
@@ -1448,51 +1473,72 @@ function App() {
                     </div>
 
                     {/* Memory Sidebar */}
-                    <div className="w-96 overflow-y-auto border-l border-stone-200 bg-surface-50 p-8">
-                      <div className="mb-8 flex items-center gap-3 border-b border-stone-200 pb-4">
-                        <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-stone-400">{copy.memoryHeading}</span>
+                    <div className="w-96 overflow-y-auto border-l border-stone-200 bg-gradient-to-b from-surface-50 via-white to-surface-50 p-8">
+                      <div className="mb-6">
+                        <div className="flex items-center gap-3 rounded-3xl border border-stone-100 bg-white/70 px-4 py-3 shadow-sm">
+                          <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-stone-500">
+                            {copy.memoryHeading}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="space-y-12">
+                      <div className="space-y-6">
                         {/* Context */}
                         {currentContext && (
-                          <div>
-                            <div className="mb-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-500">
-                              <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+                          <div className="rounded-3xl border border-stone-100 bg-gradient-to-r from-stone-50 to-white px-5 py-6 shadow-sm">
+                            <div className="mb-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-stone-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-stone-400" />
                               <span>{copy.activeContextLabel}</span>
                             </div>
-                            <p className="text-sm leading-relaxed text-stone-600 font-light italic border-l-2 border-stone-200 pl-4">
-                              "{currentContext}"
+                            <p className="text-sm leading-relaxed text-stone-600 font-light italic">
+                              “{currentContext}”
                             </p>
                           </div>
                         )}
 
                         {/* Snapshots */}
-                        {(['stm', 'ltm', 'profile'] as const).map((key) => (
-                          <div key={key}>
-                            <p className="mb-4 text-[10px] uppercase tracking-[0.2em] text-stone-400">
-                              {key === 'stm' && copy.shortTermHeading}
-                              {key === 'ltm' && copy.longTermHeading}
-                              {key === 'profile' && copy.profileHeading}
-                            </p>
-                            <div className="space-y-4">
-                              {currentMemory?.[key]?.length ? (
-                                currentMemory[key].map((item: string, i: number) => (
-                                  <div
-                                    key={i}
-                                    className="border-b border-stone-100 pb-3 text-sm font-light text-stone-600 leading-relaxed"
-                                  >
-                                    {item}
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="text-[10px] uppercase tracking-widest text-stone-300 italic">
-                                  {copy.emptyMemoryLabel}
-                                </div>
+                        {memorySections.map((section) => {
+                          const entries = currentMemory?.[section.key] ?? []
+                          return (
+                            <div
+                              key={section.key}
+                              className={clsx(
+                                'rounded-3xl border border-white/60 bg-gradient-to-b px-5 py-6 shadow-sm',
+                                section.accent,
                               )}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className={`h-2 w-2 rounded-full ${section.dot}`} />
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-stone-500">
+                                  {section.label}
+                                </p>
+                              </div>
+                              <div className="mt-5 space-y-4">
+                                {entries.length ? (
+                                  entries.map((item: string, index: number) => (
+                                    <div
+                                      key={`${section.key}-${index}`}
+                                      className="rounded-2xl border border-white/70 bg-white/80 px-4 py-3 shadow-sm"
+                                    >
+                                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-300">
+                                        <span className="font-medium text-stone-400">#{index + 1}</span>
+                                        <span className="h-px w-6 bg-stone-100" />
+                                        <span>{section.label}</span>
+                                      </div>
+                                      <p className="mt-2 text-sm leading-relaxed text-stone-700">
+                                        {item}
+                                      </p>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="rounded-2xl border border-dashed border-white/60 bg-white/40 px-4 py-3 text-[10px] uppercase tracking-[0.3em] text-stone-300">
+                                    {copy.emptyMemoryLabel}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   </>
