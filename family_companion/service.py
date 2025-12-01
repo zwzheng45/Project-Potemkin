@@ -31,13 +31,26 @@ class FamilyService:
         self.agents: Dict[str, FamilyAgent] = {}
         self._load_agents_from_state()
 
+    def _load_agents_from_state(self) -> None:
+        for family_id, meta in self.state.list_families().items():
+            self.agents[family_id] = FamilyAgent(
+                family_id=family_id,
+                name=meta.get("name", family_id),
+                description=meta.get("description", ""),
+                language=meta.get("language", "zh"),
+                memory=self.memory,
+                chain=self.chain,
+            )
+        if self.agents:
+            logger.info("Loaded %s family agents from disk", len(self.agents))
+
     def register_family(
         self,
         name: str,
         description: str = "",
         family_id: Optional[str] = None,
         task_price: Optional[int] = None,
-        members: Optional[List[Dict[str, str]]] = None,
+        language: str = "zh",
     ) -> FamilyAgent:
         fid = family_id or _slugify(name)
         if fid in self.agents:
@@ -47,6 +60,7 @@ class FamilyService:
             family_id=fid,
             name=name,
             description=description or "家庭陪伴、家务提醒、健康守护的数字小助手。",
+            language=language,
             memory=self.memory,
             chain=self.chain,
             members=members or [],
@@ -57,7 +71,14 @@ class FamilyService:
         self.chain.grant_agent_access(fid)
 
         self.agents[fid] = agent
-        self.state.upsert_family(fid, agent.to_dict())
+        self.state.upsert_family(
+            fid,
+            {
+                "name": name,
+                "description": agent.description,
+                "language": agent.language,
+            },
+        )
         logger.info("Registered new family agent %s (%s)", fid, name)
         return agent
 

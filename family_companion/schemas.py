@@ -32,6 +32,10 @@ class UpdateFamilyRequest(BaseModel):
     members: Optional[List[FamilyMember]] = Field(
         None, description="替换家庭成员列表"
     )
+    language: str = Field(
+        "zh",
+        description="家庭首选语言（例如 zh/en/es/fr/ja），将用于输出与提示。",
+    )
 
 
 class MessageRequest(BaseModel):
@@ -43,9 +47,7 @@ class FamilyResponse(BaseModel):
     family_id: str
     name: str
     description: str
-    task_price: Optional[int] = None
-    members: List[FamilyMember] = Field(default_factory=list)
-    last_active_at: Optional[str] = None
+    language: str
 
 
 class ChatResponse(BaseModel):
