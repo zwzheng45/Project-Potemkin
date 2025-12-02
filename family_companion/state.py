@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from typing import Dict, Optional, Tuple
 
 STATE_PATH = os.path.expanduser("~/.membase/family_agents/state.json")
@@ -10,9 +11,10 @@ class FamilyStateStore:
 
     def __init__(self, path: str = STATE_PATH) -> None:
         self.path = path
-        self._data: Dict[str, Dict[str, Dict[str, str]]] = {
+        self._data: Dict[str, Dict[str, object]] = {
             "families": {},
             "users": {},
+            "invites": {},
         }
         self._load()
 
@@ -34,6 +36,8 @@ class FamilyStateStore:
             self._data["families"] = {}
         if "users" not in self._data:
             self._data["users"] = {}
+        if "invites" not in self._data:
+            self._data["invites"] = {}
 
     def _persist(self) -> None:
         os.makedirs(os.path.dirname(self.path), exist_ok=True)
@@ -87,3 +91,23 @@ class FamilyStateStore:
             for uid, user in self._data["users"].items()
             if user.get("family_id") == family_id
         }
+
+    def save_invite(self, token: str, payload: Dict[str, object]) -> None:
+        invites = self._data.setdefault("invites", {})
+        invites[token] = payload
+        self._persist()
+
+    def get_invite(self, token: str) -> Optional[Dict[str, object]]:
+        invites = self._data.get("invites", {})
+        return invites.get(token)
+
+    def mark_invite_used(self, token: str) -> None:
+        invites = self._data.setdefault("invites", {})
+        invite = invites.get(token)
+        if not invite:
+            return
+        invite["used_at"] = time.time()
+        self._persist()
+
+    def list_invites(self) -> Dict[str, Dict[str, object]]:
+        return self._data.get("invites", {})

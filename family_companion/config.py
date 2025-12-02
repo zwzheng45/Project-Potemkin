@@ -15,6 +15,7 @@ class Settings:
 
     openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
     openai_model_name: str = os.getenv("OPENAI_MODEL_NAME", "gpt-4.1-mini")
+    frontend_base_url: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:8080")
     default_task_price: int = int(os.getenv("MEMBASE_TASK_PRICE", "100000"))
     auto_upload_to_hub: bool = _as_bool(os.getenv("MEMBASE_AUTO_UPLOAD", "true"), default=True)
     hub_base_url: str = os.getenv("MEMBASE_HUB", "https://testnet.hub.membase.io")

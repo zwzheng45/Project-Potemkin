@@ -7,6 +7,8 @@ import {
   ArrowRight,
   Bot,
   ChevronLeft,
+  Copy,
+  Check,
   Loader2,
   Plus,
   RefreshCcw,
@@ -22,6 +24,9 @@ import type {
   FamilyMember,
   Family,
   HealthStatus,
+  AcceptInvitePayload,
+  InviteInfo,
+  InviteLinkResponse,
   InviteMemberPayload,
   LoginPayload,
   ProfileResponse,
@@ -52,6 +57,10 @@ type Copy = {
   loginButton: string
   signupDescription: string
   loginDescription: string
+  inviteSignupTitle: string
+  inviteSignupDescription: string
+  acceptInviteButton: string
+  inviteInvalid: string
   ownerNamePlaceholder: string
   ownerEmailPlaceholder: string
   ownerPasswordPlaceholder: string
@@ -89,6 +98,10 @@ type Copy = {
   editTooltip: string
   deleteTooltip: string
   deleteConfirmation: string
+  inviteLinkReady: string
+  inviteLinkHint: string
+  inviteLinkCopy: string
+  inviteLinkCopied: string
   dashIdSuffix: string
   chatEmptyState: string
   chatPlaceholder: string
@@ -133,6 +146,10 @@ const translations = {
     loginButton: 'Log in',
     signupDescription: 'Create a family and owner account in one step.',
     loginDescription: 'Log in with your family companion account.',
+    inviteSignupTitle: 'Join this family',
+    inviteSignupDescription: 'You were invited to join {family}. Confirm your details to continue.',
+    acceptInviteButton: 'Join family',
+    inviteInvalid: 'This invitation link is invalid or has expired.',
     ownerNamePlaceholder: 'Your name...',
     ownerEmailPlaceholder: 'Email...',
     ownerPasswordPlaceholder: 'Password...',
@@ -175,6 +192,10 @@ const translations = {
     editTooltip: 'Edit family details',
     deleteTooltip: 'Delete family',
     deleteConfirmation: 'Delete this family? This cannot be undone.',
+    inviteLinkReady: 'Invite link created',
+    inviteLinkHint: 'Share this link so the invitee can sign up and join your family.',
+    inviteLinkCopy: 'Copy link',
+    inviteLinkCopied: 'Copied!',
     dashIdSuffix: '· On Chain',
     chatEmptyState: 'Start conversation with {family}',
     chatPlaceholder: 'Message as {sender}...',
@@ -217,6 +238,10 @@ const translations = {
     loginButton: '登录',
     signupDescription: '一步创建家庭与拥有者账号。',
     loginDescription: '使用家庭成员邮箱登录。',
+    inviteSignupTitle: '加入这个家庭',
+    inviteSignupDescription: '你被邀请加入 {family}，确认信息后设置密码即可。',
+    acceptInviteButton: '加入家庭',
+    inviteInvalid: '邀请链接无效或已过期。',
     ownerNamePlaceholder: '你的姓名...',
     ownerEmailPlaceholder: '邮箱...',
     ownerPasswordPlaceholder: '密码...',
@@ -259,6 +284,10 @@ const translations = {
     editTooltip: '编辑家庭详情',
     deleteTooltip: '删除家庭',
     deleteConfirmation: '确定删除该家庭？此操作无法撤销。',
+    inviteLinkReady: '邀请链接已生成',
+    inviteLinkHint: '把链接分享给被邀请人，让 TA 自助注册并加入家庭。',
+    inviteLinkCopy: '复制链接',
+    inviteLinkCopied: '已复制',
     dashIdSuffix: '· 已上链',
     chatEmptyState: '开始与 {family} 对话',
     chatPlaceholder: '以 {sender} 的身份发送消息...',
@@ -301,6 +330,10 @@ const translations = {
     loginButton: 'Se connecter',
     signupDescription: 'Créez la famille et le compte propriétaire en une fois.',
     loginDescription: 'Connectez-vous avec votre compte du compagnon familial.',
+    inviteSignupTitle: 'Rejoindre cette famille',
+    inviteSignupDescription: 'Vous êtes invité à rejoindre {family}. Confirmez vos informations pour continuer.',
+    acceptInviteButton: 'Rejoindre la famille',
+    inviteInvalid: "Lien d'invitation invalide ou expiré.",
     ownerNamePlaceholder: 'Votre nom...',
     ownerEmailPlaceholder: 'Email...',
     ownerPasswordPlaceholder: 'Mot de passe...',
@@ -343,6 +376,10 @@ const translations = {
     editTooltip: 'Modifier les détails de la famille',
     deleteTooltip: 'Supprimer la famille',
     deleteConfirmation: 'Supprimer cette famille ? Cette action est irréversible.',
+    inviteLinkReady: "Lien d'invitation créé",
+    inviteLinkHint: "Partagez ce lien pour permettre l'inscription et l'arrivée dans votre famille.",
+    inviteLinkCopy: 'Copier le lien',
+    inviteLinkCopied: 'Copié !',
     dashIdSuffix: '· On-chain',
     chatEmptyState: 'Commencez à discuter avec {family}',
     chatPlaceholder: 'Message en tant que {sender}...',
@@ -385,6 +422,10 @@ const translations = {
     loginButton: 'Anmelden',
     signupDescription: 'Familie und Besitzeraccount in einem Schritt.',
     loginDescription: 'Mit deinem Familien-Account anmelden.',
+    inviteSignupTitle: 'Dieser Familie beitreten',
+    inviteSignupDescription: 'Du wurdest eingeladen, {family} beizutreten. Bestätige deine Daten, um fortzufahren.',
+    acceptInviteButton: 'Familie beitreten',
+    inviteInvalid: 'Dieser Einladungslink ist ungültig oder abgelaufen.',
     ownerNamePlaceholder: 'Dein Name...',
     ownerEmailPlaceholder: 'E-Mail...',
     ownerPasswordPlaceholder: 'Passwort...',
@@ -427,6 +468,10 @@ const translations = {
     editTooltip: 'Familiendaten bearbeiten',
     deleteTooltip: 'Familie löschen',
     deleteConfirmation: 'Diese Familie löschen? Dies kann nicht rückgängig gemacht werden.',
+    inviteLinkReady: 'Einladungslink erstellt',
+    inviteLinkHint: 'Teile den Link, damit die eingeladene Person sich registrieren und beitreten kann.',
+    inviteLinkCopy: 'Link kopieren',
+    inviteLinkCopied: 'Kopiert!',
     dashIdSuffix: '· On-chain',
     chatEmptyState: 'Beginnen Sie ein Gespräch mit {family}',
     chatPlaceholder: 'Nachricht als {sender}...',
@@ -469,6 +514,10 @@ const translations = {
     loginButton: 'ログイン',
     signupDescription: '家族とオーナーアカウントを一度に作成。',
     loginDescription: '家族のアカウントでログイン。',
+    inviteSignupTitle: 'この家族に参加',
+    inviteSignupDescription: '{family} への招待を受け取りました。情報を確認して続行してください。',
+    acceptInviteButton: '家族に参加',
+    inviteInvalid: 'この招待リンクは無効か期限切れです。',
     ownerNamePlaceholder: 'あなたの名前...',
     ownerEmailPlaceholder: 'メール...',
     ownerPasswordPlaceholder: 'パスワード...',
@@ -511,6 +560,10 @@ const translations = {
     editTooltip: '家族詳細を編集',
     deleteTooltip: '家族を削除',
     deleteConfirmation: 'この家族を削除しますか？元に戻せません。',
+    inviteLinkReady: '招待リンクを作成しました',
+    inviteLinkHint: 'リンクを共有して、招待された人が登録・参加できるようにします。',
+    inviteLinkCopy: 'リンクをコピー',
+    inviteLinkCopied: 'コピーしました',
     dashIdSuffix: '· オンチェーン',
     chatEmptyState: '{family} と会話を始めましょう',
     chatPlaceholder: '{sender} としてメッセージ...',
@@ -622,8 +675,12 @@ function App() {
   const [isAddingMember, setIsAddingMember] = useState(false)
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberEmail, setNewMemberEmail] = useState('')
-  const [newMemberPassword, setNewMemberPassword] = useState('')
   const [newMemberRole, setNewMemberRole] = useState('member')
+  const [latestInvite, setLatestInvite] = useState<InviteLinkResponse | null>(null)
+  const [copiedInviteToken, setCopiedInviteToken] = useState<string | null>(null)
+  const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null)
+  const [inviteFetchError, setInviteFetchError] = useState<string | null>(null)
   const [sessionUser, setSessionUser] = useState<FamilyMember | null>(null)
   const [chatDraft, setChatDraft] = useState('')
   const [chatLogs, setChatLogs] = useState<Record<string, ChatMessage[]>>({})
@@ -636,6 +693,26 @@ function App() {
   const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
   const [isLandingAtTop, setIsLandingAtTop] = useState(true)
+
+  const clearInviteFromUrl = () => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('invite')) {
+      url.searchParams.delete('invite')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('invite')
+    if (token) {
+      setInviteToken(token)
+      setAuthMode('signup')
+      setView('landing')
+    }
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -709,6 +786,13 @@ function App() {
     retry: false,
   })
 
+  const inviteQuery = useQuery<InviteInfo>({
+    queryKey: ['invite', inviteToken],
+    queryFn: () => api.fetchInvite(inviteToken!),
+    enabled: Boolean(inviteToken),
+    retry: false,
+  })
+
   useEffect(() => {
     if (!profileQuery.data) return
     const data = profileQuery.data
@@ -730,6 +814,35 @@ function App() {
       setSelectedFamilyId(null)
     }
   }, [profileQuery.error])
+
+  useEffect(() => {
+    if (!inviteQuery.data) return
+    setInviteInfo(inviteQuery.data)
+    setInviteFetchError(null)
+    setSignupForm((prev) => ({
+      ...prev,
+      family_name: inviteQuery.data.family_name || inviteQuery.data.family_id,
+      user_name: inviteQuery.data.name || prev.user_name,
+      email: inviteQuery.data.email || prev.email,
+    }))
+  }, [inviteQuery.data])
+
+  useEffect(() => {
+    const error = inviteQuery.error as Error | null
+    if (error) {
+      setInviteFetchError(error.message)
+      setInviteInfo(null)
+    } else if (!inviteQuery.isFetching) {
+      setInviteFetchError(null)
+    }
+  }, [inviteQuery.error, inviteQuery.isFetching])
+
+  useEffect(() => {
+    if (!inviteToken) {
+      setInviteInfo(null)
+      setInviteFetchError(null)
+    }
+  }, [inviteToken])
 
   const selectedFamily = useMemo(() => {
     if (profileQuery.data?.family) return profileQuery.data.family
@@ -774,6 +887,12 @@ function App() {
     setChatLogs({})
     setMemoryCache({})
     setContextCache({})
+    setLatestInvite(null)
+    setCopiedInviteToken(null)
+    setInviteToken(null)
+    setInviteInfo(null)
+    setInviteFetchError(null)
+    clearInviteFromUrl()
     setSignupForm({
       family_name: '',
       description: '',
@@ -800,6 +919,12 @@ function App() {
     onError: (error: Error) => {
       setFormError(error.message)
     },
+  })
+
+  const acceptInviteMutation = useMutation<AuthResponse, Error, AcceptInvitePayload>({
+    mutationFn: (payload) => api.acceptInvite(payload),
+    onSuccess: (resp) => handleAuthSuccess(resp, true),
+    onError: (error: Error) => setFormError(error.message),
   })
 
   const loginMutation = useMutation<AuthResponse, Error, LoginPayload>({
@@ -838,27 +963,19 @@ function App() {
   })
 
   const inviteMemberMutation = useMutation<
-    FamilyMember,
+    InviteLinkResponse,
     Error,
     { familyId: string; payload: InviteMemberPayload }
   >({
     mutationFn: ({ familyId, payload }) => api.inviteMember(familyId, payload, authToken!),
-    onSuccess: (member) => {
+    onSuccess: (invite) => {
       setGlobalError(null)
       setIsAddingMember(false)
       setNewMemberName('')
       setNewMemberEmail('')
-      setNewMemberPassword('')
       setNewMemberRole('member')
-      setFamilyMembers((prev) => [...prev, member])
-      queryClient.setQueryData(['profile', authToken], (old: ProfileResponse | undefined) =>
-        old
-          ? {
-              ...old,
-              family: { ...old.family, members: [...(old.family.members ?? []), member] },
-            }
-          : old,
-      )
+      setLatestInvite(invite)
+      setCopiedInviteToken(null)
     },
     onError: (error: Error) => setGlobalError(error.message),
   })
@@ -892,6 +1009,22 @@ function App() {
   const senderLabel = sessionUser
     ? `${sessionUser.name} · ${sessionUser.role || copy.identityUnsetLabel}`
     : ''
+  const isInviteSignup = Boolean(inviteToken)
+  const inviteInvalid =
+    Boolean(inviteFetchError) || Boolean(inviteInfo && (inviteInfo.used || inviteInfo.expired))
+  const signupPending = isInviteSignup ? acceptInviteMutation.isPending : signupMutation.isPending
+  const signupDisabled = isInviteSignup
+    ? inviteInvalid ||
+      !inviteInfo ||
+      !signupForm.user_name.trim() ||
+      !signupForm.email.trim() ||
+      !signupForm.password.trim() ||
+      signupPending
+    : signupPending ||
+      !signupForm.family_name.trim() ||
+      !signupForm.user_name.trim() ||
+      !signupForm.email.trim() ||
+      !signupForm.password.trim()
   const isOwner =
     selectedFamily && sessionUser
       ? selectedFamily.owner_id === sessionUser.user_id || sessionUser.role === 'owner'
@@ -910,6 +1043,27 @@ function App() {
 
   const handleSignup = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isInviteSignup) {
+      if (inviteInvalid) {
+        setFormError(inviteFetchError || copy.inviteInvalid)
+        return
+      }
+      if (!inviteInfo) {
+        setFormError(copy.apiConnecting)
+        return
+      }
+      if (!signupForm.user_name.trim() || !signupForm.email.trim() || !signupForm.password.trim()) {
+        setFormError(copy.ownerFieldsRequired)
+        return
+      }
+      acceptInviteMutation.mutate({
+        token: inviteToken!,
+        name: signupForm.user_name.trim() || inviteInfo?.name || signupForm.email.trim(),
+        email: signupForm.email.trim(),
+        password: signupForm.password,
+      })
+      return
+    }
     if (!signupForm.family_name.trim()) {
       setFormError(copy.familyNameRequired)
       return
@@ -950,16 +1104,29 @@ function App() {
     if (!selectedFamily || !sessionUser || !authToken) return
     const name = newMemberName.trim()
     const email = newMemberEmail.trim()
-    if (!name || !email || !newMemberPassword.trim()) return
+    if (!name || !email) return
     inviteMemberMutation.mutate({
       familyId: selectedFamily.family_id,
       payload: {
         name,
         email,
-        password: newMemberPassword,
         role: newMemberRole || 'member',
       },
     })
+  }
+
+  const handleCopyInviteLink = async (invite: InviteLinkResponse) => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      setGlobalError('Clipboard not available in this environment')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(invite.invite_url)
+      setCopiedInviteToken(invite.invite_token)
+      setTimeout(() => setCopiedInviteToken(null), 1500)
+    } catch (error) {
+      setGlobalError((error as Error).message || 'Failed to copy invite link')
+    }
   }
 
   const handleSendMessage = () => {
@@ -993,6 +1160,8 @@ function App() {
     setChatLogs({})
     setMemoryCache({})
     setContextCache({})
+    setLatestInvite(null)
+    setCopiedInviteToken(null)
     setShouldShowIntro(false)
     setView('landing')
     queryClient.clear()
@@ -1103,47 +1272,77 @@ function App() {
                   {authMode === 'signup' ? (
                     <form className="space-y-6" onSubmit={handleSignup}>
                       <p className="text-[10px] uppercase tracking-[0.25em] text-stone-400">
-                        {copy.signupDescription}
+                        {isInviteSignup
+                          ? interpolate(copy.inviteSignupDescription, {
+                              family:
+                                inviteInfo?.family_name ?? inviteInfo?.family_id ?? copy.brandTagline,
+                            })
+                          : copy.signupDescription}
                       </p>
-                      <div className="group relative">
-                        <input
-                          className="w-full border-b border-stone-300 bg-transparent px-0 py-4 text-xl text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display"
-                          placeholder={copy.familyNamePlaceholder}
-                          value={signupForm.family_name}
-                          onChange={(e) =>
-                            setSignupForm((prev) => ({ ...prev, family_name: e.target.value }))
-                          }
-                        />
-                      </div>
-                      <div>
-                        <textarea
-                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                          rows={2}
-                          placeholder={copy.familyDescriptionPlaceholder}
-                          value={signupForm.description}
-                          onChange={(e) =>
-                            setSignupForm((prev) => ({ ...prev, description: e.target.value }))
-                          }
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                          placeholder={copy.familyIdPlaceholder}
-                          value={signupForm.family_id}
-                          onChange={(e) =>
-                            setSignupForm((prev) => ({ ...prev, family_id: e.target.value }))
-                          }
-                        />
-                        <input
-                          type="number"
-                          min={0}
-                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                          placeholder={copy.familyStakePlaceholder}
-                          value={signupForm.task_price}
-                          onChange={(e) => handleTaskPriceChange(e.target.value)}
-                        />
-                      </div>
+                      {isInviteSignup ? (
+                        <div className="rounded-2xl border border-stone-200 bg-white/70 px-4 py-3">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                                {copy.inviteSignupTitle}
+                              </p>
+                              <p className="text-xl font-display text-stone-900">
+                                {inviteInfo?.family_name ?? inviteInfo?.family_id ?? '-'}
+                              </p>
+                            </div>
+                            <p className="text-xs text-stone-500 break-all">
+                              {inviteInfo?.email || copy.ownerEmailPlaceholder}
+                            </p>
+                          </div>
+                          {inviteInvalid ? (
+                            <p className="mt-3 text-sm text-rose-500">
+                              {inviteFetchError || copy.inviteInvalid}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="group relative">
+                            <input
+                              className="w-full border-b border-stone-300 bg-transparent px-0 py-4 text-xl text-stone-800 placeholder:text-stone-300 outline-none transition-all focus:border-stone-800 font-display"
+                              placeholder={copy.familyNamePlaceholder}
+                              value={signupForm.family_name}
+                              onChange={(e) =>
+                                setSignupForm((prev) => ({ ...prev, family_name: e.target.value }))
+                              }
+                            />
+                          </div>
+                          <div>
+                            <textarea
+                              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                              rows={2}
+                              placeholder={copy.familyDescriptionPlaceholder}
+                              value={signupForm.description}
+                              onChange={(e) =>
+                                setSignupForm((prev) => ({ ...prev, description: e.target.value }))
+                              }
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <input
+                              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                              placeholder={copy.familyIdPlaceholder}
+                              value={signupForm.family_id}
+                              onChange={(e) =>
+                                setSignupForm((prev) => ({ ...prev, family_id: e.target.value }))
+                              }
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                              placeholder={copy.familyStakePlaceholder}
+                              value={signupForm.task_price}
+                              onChange={(e) => handleTaskPriceChange(e.target.value)}
+                            />
+                          </div>
+                        </>
+                      )}
                       <div className="grid grid-cols-1 gap-3">
                         <input
                           className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
@@ -1155,9 +1354,13 @@ function App() {
                         />
                         <input
                           type="email"
-                          className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                          className={clsx(
+                            'w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10',
+                            isInviteSignup && inviteInfo?.email ? 'bg-stone-100 text-stone-500' : '',
+                          )}
                           placeholder={copy.ownerEmailPlaceholder}
                           value={signupForm.email}
+                          readOnly={Boolean(isInviteSignup && inviteInfo?.email)}
                           onChange={(e) =>
                             setSignupForm((prev) => ({ ...prev, email: e.target.value }))
                           }
@@ -1175,15 +1378,17 @@ function App() {
                       {formError ? <p className="text-sm text-rose-500">{formError}</p> : null}
                       <button
                         type="submit"
-                        disabled={signupMutation.isPending || !signupForm.family_name}
+                        disabled={signupDisabled}
                         className="group relative w-full overflow-hidden bg-stone-900 px-8 py-4 text-white transition-all hover:bg-stone-800 disabled:bg-stone-300"
                       >
                         <div className="relative z-10 flex items-center justify-center gap-3">
-                          {signupMutation.isPending ? (
+                          {signupPending ? (
                             <Loader2 className="animate-spin" size={18} />
                           ) : (
                             <>
-                              <span className="text-sm font-medium tracking-[0.2em] uppercase">{copy.signupButton}</span>
+                              <span className="text-sm font-medium tracking-[0.2em] uppercase">
+                                {isInviteSignup ? copy.acceptInviteButton : copy.signupButton}
+                              </span>
                               <ArrowRight size={16} className="transition-transform duration-500 group-hover:translate-x-2" />
                             </>
                           )}
@@ -1343,7 +1548,6 @@ function App() {
                             setIsAddingMember(false)
                             setNewMemberName('')
                             setNewMemberEmail('')
-                            setNewMemberPassword('')
                           }}
                           className="text-stone-400 hover:text-stone-800 transition-colors"
                         >
@@ -1366,16 +1570,6 @@ function App() {
                           placeholder={copy.newMemberEmailPlaceholder}
                           className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
                         />
-                        <input
-                          type="password"
-                          value={newMemberPassword}
-                          onChange={(event) => setNewMemberPassword(event.target.value)}
-                          placeholder={copy.newMemberPasswordPlaceholder}
-                          className="w-full border-b border-stone-200 py-2 text-xl font-display italic text-stone-800 placeholder:text-stone-300 outline-none focus:border-stone-800 transition-colors bg-transparent"
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') handleAddMember()
-                          }}
-                        />
                         <select
                           value={newMemberRole}
                           onChange={(event) => setNewMemberRole(event.target.value)}
@@ -1390,7 +1584,6 @@ function App() {
                           disabled={
                             !newMemberName.trim() ||
                             !newMemberEmail.trim() ||
-                            !newMemberPassword.trim() ||
                             inviteMemberMutation.isPending
                           }
                           className="self-end text-[10px] uppercase tracking-[0.2em] text-stone-900 hover:text-stone-500 disabled:text-stone-300 transition-colors"
@@ -1415,6 +1608,46 @@ function App() {
                   </div>
                 ) : null}
               </div>
+
+              {latestInvite && (
+                <div className="mt-10 w-full max-w-3xl rounded-3xl border border-stone-200 bg-white/70 p-6 shadow-sm">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                        {copy.inviteLinkReady}
+                      </p>
+                      <p className="text-sm text-stone-600">{copy.inviteLinkHint}</p>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-stone-500">
+                      {latestInvite.email}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <input
+                      readOnly
+                      value={latestInvite.invite_url}
+                      className="flex-1 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCopyInviteLink(latestInvite)}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-4 py-3 text-sm uppercase tracking-[0.2em] text-stone-900 transition-colors hover:bg-stone-50"
+                    >
+                      {copiedInviteToken === latestInvite.invite_token ? (
+                        <>
+                          <Check size={16} />
+                          <span>{copy.inviteLinkCopied}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          <span>{copy.inviteLinkCopy}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-16 flex justify-center">
                 <button

@@ -56,8 +56,37 @@ export type LoginPayload = {
 export type InviteMemberPayload = {
   name: string
   email: string
-  password: string
   role?: string
+}
+
+export type InviteLinkResponse = {
+  invite_token: string
+  invite_url: string
+  family_id: string
+  family_name: string
+  email: string
+  name: string
+  role: string
+  expires_at?: number | null
+}
+
+export type InviteInfo = {
+  invite_token: string
+  family_id: string
+  family_name: string
+  email: string
+  name: string
+  role: string
+  expires_at?: number | null
+  used: boolean
+  expired: boolean
+}
+
+export type AcceptInvitePayload = {
+  token: string
+  name: string
+  email: string
+  password: string
 }
 
 export type MessagePayload = {

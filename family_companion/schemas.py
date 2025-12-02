@@ -75,8 +75,37 @@ class AuthResponse(BaseModel):
 class InviteMemberRequest(BaseModel):
     name: str = Field(..., description="家庭成员姓名")
     email: str = Field(..., description="成员邮箱")
-    password: str = Field(..., description="成员密码")
     role: str = Field("member", description="角色，默认成员，可选 owner/member")
+
+
+class InviteLinkResponse(BaseModel):
+    invite_token: str
+    invite_url: str
+    family_id: str
+    family_name: str
+    email: str
+    name: str
+    role: str = "member"
+    expires_at: Optional[float] = None
+
+
+class InviteInfoResponse(BaseModel):
+    invite_token: str
+    family_id: str
+    family_name: str
+    email: str
+    name: str
+    role: str = "member"
+    expires_at: Optional[float] = None
+    used: bool = False
+    expired: bool = False
+
+
+class AcceptInviteRequest(BaseModel):
+    token: str = Field(..., description="邀请链接中的token")
+    name: str = Field(..., description="成员姓名")
+    email: str = Field(..., description="成员邮箱")
+    password: str = Field(..., description="成员密码")
 
 
 class ProfileResponse(BaseModel):

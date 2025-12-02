@@ -2,8 +2,10 @@ import type {
   AuthResponse,
   ChatResponse,
   Family,
-  FamilyMember,
   HealthStatus,
+  AcceptInvitePayload,
+  InviteInfo,
+  InviteLinkResponse,
   InviteMemberPayload,
   LoginPayload,
   MemorySnapshot,
@@ -12,9 +14,7 @@ import type {
   SignupPayload,
 } from '../types'
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ??
-  (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000')
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://pj-potemkin.zzw.moe'
 
 async function request<T>(path: string, init?: RequestInit, token?: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -65,7 +65,7 @@ export const api = {
     familyId: string,
     payload: InviteMemberPayload,
     token: string,
-  ): Promise<FamilyMember> =>
+  ): Promise<InviteLinkResponse> =>
     request(
       `/families/${familyId}/members`,
       {
@@ -74,4 +74,7 @@ export const api = {
       },
       token,
     ),
+  fetchInvite: (token: string): Promise<InviteInfo> => request(`/auth/invite/${token}`),
+  acceptInvite: (payload: AcceptInvitePayload): Promise<AuthResponse> =>
+    request('/auth/invite/accept', { method: 'POST', body: JSON.stringify(payload) }),
 }

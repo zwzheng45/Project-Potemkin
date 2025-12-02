@@ -4,7 +4,7 @@ Built with **Vite + React + TypeScript + Tailwind CSS + React Query** to talk di
 
 - Family onboarding + owner account: `/auth/signup` (includes `family_name`, `family_id?`, `task_price?`, `language`, and owner `user_name/email/password`).
 - Member auth: `/auth/login` issues a bearer token stored as `fc-token` (localStorage) and used for all authenticated calls.
-- Member invites (owner only): `/families/{family_id}/members` with `name/email/password/role`.
+- Member invites (owner only): `/families/{family_id}/members` with `name/email/role`, which returns an `invite_url`; invitees register themselves via `/auth/invite/accept`.
 - Chat: `/families/{family_id}/messages` uses the authenticated user; responses return `reply`, `context_used`, and a `memory` snapshot (`stm/ltm/profile/user_stm`).
 - Memory panel: `/families/{family_id}/memory` (auth) plus `/health` for status.
 
