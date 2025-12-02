@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
@@ -9,9 +9,12 @@ import {
   ChevronLeft,
   Copy,
   Check,
+  ImagePlus,
   Loader2,
   Plus,
   RefreshCcw,
+  Trash2,
+  UserPen,
   X,
 } from 'lucide-react'
 
@@ -122,6 +125,16 @@ type Copy = {
   shortTermHeading: string
   longTermHeading: string
   profileHeading: string
+  profileEditButton: string
+  profileEditTitle: string
+  profileNameLabel: string
+  profileNameRequired: string
+  profileBioLabel: string
+  profileBioPlaceholder: string
+  profileAvatarLabel: string
+  profileAvatarHint: string
+  profileAvatarUpload: string
+  profileAvatarRemove: string
   userShortTermHeading: string
   memberRoleOwner: string
   memberRoleMember: string
@@ -225,7 +238,17 @@ const translations = {
     activeContextLabel: 'Active Context',
     shortTermHeading: 'Short-term Memory',
     longTermHeading: 'Long-term Memory',
-    profileHeading: 'Family Profile',
+  profileHeading: 'Family Profile',
+  profileEditButton: 'Edit profile',
+  profileEditTitle: 'Personal profile',
+  profileNameLabel: 'Display name',
+  profileNameRequired: 'Please enter your display name',
+  profileBioLabel: 'Bio / tagline',
+  profileBioPlaceholder: 'Add a short line about yourself...',
+  profileAvatarLabel: 'Avatar',
+  profileAvatarHint: 'Square images look best. We automatically apply a soft rounded rectangle mask.',
+  profileAvatarUpload: 'Upload image',
+  profileAvatarRemove: 'Remove',
     userShortTermHeading: 'Your Recent Memory',
     memberRoleOwner: 'Owner',
     memberRoleMember: 'Member',
@@ -325,7 +348,17 @@ const translations = {
     activeContextLabel: '当前上下文',
     shortTermHeading: '短期记忆',
     longTermHeading: '长期记忆',
-    profileHeading: '家庭画像',
+  profileHeading: '家庭画像',
+  profileEditButton: '编辑个人档案',
+  profileEditTitle: '个人资料',
+  profileNameLabel: '显示名称',
+  profileNameRequired: '请填写你的显示名称',
+  profileBioLabel: '个性签名',
+  profileBioPlaceholder: '写一句介绍自己的话……',
+  profileAvatarLabel: '头像',
+  profileAvatarHint: '建议上传方形图片，我们会自动套用大弧度圆角效果。',
+  profileAvatarUpload: '上传图片',
+  profileAvatarRemove: '移除',
     userShortTermHeading: '你的近期记忆',
     memberRoleOwner: '拥有者',
     memberRoleMember: '成员',
@@ -426,7 +459,17 @@ const translations = {
     activeContextLabel: 'Contexte actif',
     shortTermHeading: 'Mémoire court terme',
     longTermHeading: 'Mémoire long terme',
-    profileHeading: 'Profil familial',
+  profileHeading: 'Profil familial',
+  profileEditButton: 'Modifier le profil',
+  profileEditTitle: 'Profil personnel',
+  profileNameLabel: 'Nom affiché',
+  profileNameRequired: 'Veuillez saisir votre nom affiché',
+  profileBioLabel: 'Bio / slogan',
+  profileBioPlaceholder: 'Ajoutez une courte description…',
+  profileAvatarLabel: 'Avatar',
+  profileAvatarHint: "Une image carrée rend mieux. Nous appliquons automatiquement un large arrondi.",
+  profileAvatarUpload: 'Téléverser',
+  profileAvatarRemove: 'Retirer',
     userShortTermHeading: 'Votre mémoire récente',
     memberRoleOwner: 'Propriétaire',
     memberRoleMember: 'Membre',
@@ -527,7 +570,17 @@ const translations = {
     activeContextLabel: 'Aktiver Kontext',
     shortTermHeading: 'Kurzzeitgedächtnis',
     longTermHeading: 'Langzeitgedächtnis',
-    profileHeading: 'Familienprofil',
+  profileHeading: 'Familienprofil',
+  profileEditButton: 'Profil bearbeiten',
+  profileEditTitle: 'Persönliches Profil',
+  profileNameLabel: 'Anzeigename',
+  profileNameRequired: 'Bitte gib deinen Anzeigenamen ein',
+  profileBioLabel: 'Bio / Motto',
+  profileBioPlaceholder: 'Schreibe einen kurzen Satz über dich…',
+  profileAvatarLabel: 'Avatar',
+  profileAvatarHint: 'Quadratische Bilder wirken am besten. Wir legen automatisch eine weich abgerundete Form darüber.',
+  profileAvatarUpload: 'Bild hochladen',
+  profileAvatarRemove: 'Entfernen',
     userShortTermHeading: 'Deine letzten Gespräche',
     memberRoleOwner: 'Owner',
     memberRoleMember: 'Mitglied',
@@ -627,7 +680,17 @@ const translations = {
     activeContextLabel: 'アクティブなコンテキスト',
     shortTermHeading: '短期メモリー',
     longTermHeading: '長期メモリー',
-    profileHeading: '家族プロフィール',
+  profileHeading: '家族プロフィール',
+  profileEditButton: 'プロフィールを編集',
+  profileEditTitle: '個人プロフィール',
+  profileNameLabel: '表示名',
+  profileNameRequired: '表示名を入力してください',
+  profileBioLabel: 'ひとこと / 自己紹介',
+  profileBioPlaceholder: '自分について一言を書きましょう…',
+  profileAvatarLabel: 'アバター',
+  profileAvatarHint: '正方形の画像がおすすめ。大きめの角丸マスクを自動で適用します。',
+  profileAvatarUpload: '画像をアップロード',
+  profileAvatarRemove: '削除',
     userShortTermHeading: 'あなたの最近の記憶',
     memberRoleOwner: 'オーナー',
     memberRoleMember: 'メンバー',
@@ -703,6 +766,52 @@ const LanguageSelector = ({ language, label, onChange, className }: LanguageSele
   </div>
 )
 
+type ProfileOverride = {
+  name?: string
+  avatar_url?: string | null
+  bio?: string | null
+}
+
+type ProfileFormState = {
+  name: string
+  bio: string
+  avatarUrl: string
+}
+
+type RoundedAvatarProps = {
+  src?: string | null
+  label: string
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+}
+
+const RoundedAvatar = ({ src, label, size = 'md', className }: RoundedAvatarProps) => {
+  const sizeClass =
+    size === 'lg'
+      ? 'h-40 w-40'
+      : size === 'sm'
+        ? 'h-10 w-10'
+        : 'h-14 w-14'
+  const radiusClass = size === 'lg' ? 'rounded-[36px]' : 'rounded-[24px]'
+
+  return (
+    <div
+      className={clsx(
+        'overflow-hidden border border-stone-200 bg-stone-100 text-stone-400 flex items-center justify-center font-display text-xl uppercase tracking-wide shadow-sm',
+        sizeClass,
+        radiusClass,
+        className,
+      )}
+    >
+      {src ? (
+        <img src={src} alt={label} className="h-full w-full object-cover" />
+      ) : (
+        <span>{label.slice(0, 1) || '?'}</span>
+      )}
+    </div>
+  )
+}
+
 type FamilyIdReminderProps = {
   familyId: string
   copy: Copy
@@ -761,6 +870,139 @@ const FamilyIdReminder = ({ familyId, copy, onClose }: FamilyIdReminderProps) =>
   )
 }
 
+type ProfileEditModalProps = {
+  copy: Copy
+  form: ProfileFormState
+  onClose: () => void
+  onChange: (field: keyof ProfileFormState, value: string) => void
+  onUpload: (file: File) => void
+  onRemoveAvatar: () => void
+  onSave: () => void
+  saving: boolean
+  error: string | null
+}
+
+const ProfileEditModal = ({
+  copy,
+  form,
+  onClose,
+  onChange,
+  onUpload,
+  onRemoveAvatar,
+  onSave,
+  saving,
+  error,
+}: ProfileEditModalProps) => {
+  const inputId = 'profile-avatar-upload'
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 px-4 py-6 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <motion.div
+        className="relative w-full max-w-3xl rounded-[38px] border border-stone-200 bg-white/95 p-8 text-stone-900 shadow-2xl"
+        initial={{ opacity: 0, y: 32, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.98 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-6 top-6 text-stone-400 transition-colors hover:text-stone-900"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="space-y-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-stone-400">{copy.profileEditButton}</p>
+            <h3 className="mt-2 text-3xl font-display italic text-stone-900">{copy.profileEditTitle}</h3>
+          </div>
+          <div className="flex flex-col gap-8 md:flex-row">
+            <div className="flex flex-1 flex-col items-center gap-4 md:max-w-[220px]">
+              <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">{copy.profileAvatarLabel}</span>
+              <RoundedAvatar src={form.avatarUrl} label={form.name || '?'} size="lg" />
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <input
+                  id={inputId}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (file) onUpload(file)
+                    event.target.value = ''
+                  }}
+                />
+                <label
+                  htmlFor={inputId}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 px-4 py-2 text-xs uppercase tracking-[0.2em] text-stone-900 transition-colors hover:bg-stone-50 cursor-pointer"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  {copy.profileAvatarUpload}
+                </label>
+                {form.avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={onRemoveAvatar}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 px-4 py-2 text-xs uppercase tracking-[0.2em] text-rose-600 transition-colors hover:bg-rose-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {copy.profileAvatarRemove}
+                  </button>
+                )}
+              </div>
+              <p className="text-center text-xs text-stone-400">{copy.profileAvatarHint}</p>
+            </div>
+            <div className="flex flex-1 flex-col gap-5">
+              <label className="space-y-2 text-sm">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">{copy.profileNameLabel}</span>
+                <input
+                  className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                  value={form.name}
+                  onChange={(event) => onChange('name', event.target.value)}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400">{copy.profileBioLabel}</span>
+                <textarea
+                  rows={4}
+                  className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
+                  placeholder={copy.profileBioPlaceholder}
+                  value={form.bio}
+                  onChange={(event) => onChange('bio', event.target.value)}
+                />
+              </label>
+            </div>
+          </div>
+          {error && <p className="text-sm text-rose-500">{error}</p>}
+          <div className="flex flex-col gap-3 border-t border-stone-100 pt-5 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-2xl border border-stone-200 px-6 py-3 text-xs uppercase tracking-[0.3em] text-stone-500 transition-colors hover:text-stone-900"
+            >
+              {copy.cancelButton}
+            </button>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className="rounded-2xl bg-stone-900 px-8 py-3 text-xs font-semibold uppercase tracking-[0.3em] text-white transition-colors hover:bg-stone-800 disabled:bg-stone-400"
+            >
+              {saving ? copy.savingButton : copy.saveButton}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 function App() {
   const queryClient = useQueryClient()
   const [authToken, setAuthToken] = useState<string | null>(() => {
@@ -781,6 +1023,23 @@ function App() {
     password: '',
   })
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
+  const [profileOverrides, setProfileOverrides] = useState<Record<string, ProfileOverride>>(() => {
+    if (typeof window === 'undefined') return {}
+    try {
+      const stored = window.localStorage.getItem('fc-profile-overrides')
+      return stored ? JSON.parse(stored) : {}
+    } catch {
+      return {}
+    }
+  })
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [profileForm, setProfileForm] = useState<ProfileFormState>({
+    name: '',
+    bio: '',
+    avatarUrl: '',
+  })
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const [isProfileSaving, setIsProfileSaving] = useState(false)
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([])
   const [isAddingMember, setIsAddingMember] = useState(false)
   const [newMemberName, setNewMemberName] = useState('')
@@ -803,6 +1062,20 @@ function App() {
   const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
   const [isLandingAtTop, setIsLandingAtTop] = useState(true)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('fc-profile-overrides', JSON.stringify(profileOverrides))
+  }, [profileOverrides])
+
+  const upsertProfileOverride = useCallback((userId: string, override: ProfileOverride) => {
+    setProfileOverrides((prev) => ({
+      ...prev,
+      [userId]: {
+        ...(prev[userId] ?? {}),
+        ...override,
+      },
+    }))
+  }, [])
   const [signupFamilyId, setSignupFamilyId] = useState<string | null>(null)
 
   const clearInviteFromUrl = () => {
@@ -862,6 +1135,30 @@ function App() {
     },
   ]
 
+  const applyProfileOverrides = useCallback(
+    (member: FamilyMember): FamilyMember => {
+      const override = profileOverrides[member.user_id]
+      if (!override) return member
+      const next: FamilyMember = { ...member }
+      if (override.name) {
+        next.name = override.name
+      }
+      if (Object.prototype.hasOwnProperty.call(override, 'avatar_url')) {
+        next.avatar_url = override.avatar_url ?? null
+      }
+      if (Object.prototype.hasOwnProperty.call(override, 'bio')) {
+        next.bio = override.bio ?? null
+      }
+      return next
+    },
+    [profileOverrides],
+  )
+
+  const applyOverridesToList = useCallback(
+    (members: FamilyMember[] = []) => members.map((member) => applyProfileOverrides(member)),
+    [applyProfileOverrides],
+  )
+
   useEffect(() => {
     if (!selectedFamilyId) {
       setView('landing')
@@ -908,13 +1205,12 @@ function App() {
     if (!profileQuery.data) return
     const data = profileQuery.data
     setGlobalError(null)
-    setSessionUser(data.user)
+    setSessionUser(applyProfileOverrides(data.user))
     setSelectedFamilyId(data.family.family_id)
-    setFamilyMembers(data.family.members ?? [])
     if (view === 'landing') {
       setView('identity')
     }
-  }, [profileQuery.data, view])
+  }, [profileQuery.data, view, applyProfileOverrides])
 
   useEffect(() => {
     const error = profileQuery.error as Error | null
@@ -968,8 +1264,8 @@ function App() {
       setFamilyMembers([])
       return
     }
-    setFamilyMembers(selectedFamily.members ?? [])
-  }, [selectedFamily])
+    setFamilyMembers(applyOverridesToList(selectedFamily.members ?? []))
+  }, [selectedFamily, applyOverridesToList])
 
   useEffect(() => {
     if (!authToken) {
@@ -978,6 +1274,7 @@ function App() {
       setContextCache({})
       setSessionUser(null)
       setSelectedFamilyId(null)
+      setIsEditingProfile(false)
     }
   }, [authToken])
 
@@ -990,9 +1287,9 @@ function App() {
 
   const handleAuthSuccess = (resp: AuthResponse, showIntro = false) => {
     setAuthToken(resp.token)
-    setSessionUser(resp.user)
+    setSessionUser(applyProfileOverrides(resp.user))
     setSelectedFamilyId(resp.family.family_id)
-    setFamilyMembers(resp.family.members ?? [])
+    setFamilyMembers(applyOverridesToList(resp.family.members ?? []))
     setFormError(null)
     setGlobalError(null)
     setChatLogs({})
@@ -1203,6 +1500,85 @@ function App() {
     })
   }
 
+  const closeProfileEditor = () => {
+    setIsEditingProfile(false)
+    setProfileError(null)
+  }
+
+  const openProfileEditor = () => {
+    if (!sessionUser) return
+    setProfileForm({
+      name: sessionUser.name ?? '',
+      bio: sessionUser.bio ?? '',
+      avatarUrl: sessionUser.avatar_url ?? '',
+    })
+    setProfileError(null)
+    setIsEditingProfile(true)
+  }
+
+  const handleProfileFormChange = (field: keyof ProfileFormState, value: string) => {
+    setProfileForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleAvatarUpload = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      handleProfileFormChange('avatarUrl', typeof reader.result === 'string' ? reader.result : '')
+    }
+    reader.onerror = () => {
+      setProfileError('Failed to load image')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleProfileSave = () => {
+    if (!sessionUser) return
+    const trimmedName = profileForm.name.trim()
+    if (!trimmedName) {
+      setProfileError(copy.profileNameRequired)
+      return
+    }
+    setProfileError(null)
+    setIsProfileSaving(true)
+    const trimmedBio = profileForm.bio.trim()
+    const trimmedAvatar = profileForm.avatarUrl.trim()
+    const override: ProfileOverride = {
+      name: trimmedName,
+      bio: trimmedBio ? trimmedBio : null,
+      avatar_url: trimmedAvatar ? trimmedAvatar : null,
+    }
+    upsertProfileOverride(sessionUser.user_id, override)
+    const patch: Partial<FamilyMember> = {
+      name: override.name,
+      bio: override.bio ?? null,
+      avatar_url: override.avatar_url ?? null,
+    }
+    setSessionUser((prev) => (prev ? { ...prev, ...patch } : prev))
+    setFamilyMembers((prev) =>
+      prev.map((member) => (member.user_id === sessionUser.user_id ? { ...member, ...patch } : member)),
+    )
+    if (authToken) {
+      queryClient.setQueryData<ProfileResponse>(['profile', authToken], (prev) => {
+        if (!prev) return prev
+        const updatedFamily = {
+          ...prev.family,
+          members: prev.family.members?.map((member) =>
+            member.user_id === sessionUser.user_id ? { ...member, ...patch } : member,
+          ) as FamilyMember[],
+        }
+        const updatedUser =
+          prev.user.user_id === sessionUser.user_id ? { ...prev.user, ...patch } : prev.user
+        return {
+          ...prev,
+          user: updatedUser,
+          family: updatedFamily,
+        }
+      })
+    }
+    setIsProfileSaving(false)
+    setIsEditingProfile(false)
+  }
+
   const handleAddMember = () => {
     if (!selectedFamily || !sessionUser || !authToken) return
     const name = newMemberName.trim()
@@ -1283,6 +1659,7 @@ function App() {
     setCopiedInviteToken(null)
     setShouldShowIntro(false)
     setView('landing')
+    setIsEditingProfile(false)
     queryClient.clear()
   }
 
@@ -1316,6 +1693,21 @@ function App() {
             onClose={() => setSignupFamilyId(null)}
           />
         ) : null}
+        <AnimatePresence>
+          {isEditingProfile && sessionUser ? (
+            <ProfileEditModal
+              copy={copy}
+              form={profileForm}
+              onClose={closeProfileEditor}
+              onChange={handleProfileFormChange}
+              onUpload={handleAvatarUpload}
+              onRemoveAvatar={() => handleProfileFormChange('avatarUrl', '')}
+              onSave={handleProfileSave}
+              saving={isProfileSaving}
+              error={profileError}
+            />
+          ) : null}
+        </AnimatePresence>
         {view !== 'dashboard' && (view !== 'landing' || isLandingAtTop) && (
           <div className="fixed right-6 top-2 sm:top-3 md:top-4 lg:top-5 z-30">
             <LanguageSelector
@@ -1594,6 +1986,18 @@ function App() {
                 <h2 className="text-5xl font-display font-normal text-stone-900 italic mb-4">{copy.identitySelectionTitle}</h2>
                 <div className="w-12 h-px bg-stone-300 mx-auto" />
               </div>
+              {sessionUser && (
+                <motion.button
+                  type="button"
+                  onClick={openProfileEditor}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.96 }}
+                  className="mb-10 inline-flex items-center gap-2 rounded-full border border-stone-200 px-4 py-2 text-[10px] uppercase tracking-[0.3em] text-stone-600 transition hover:border-stone-400"
+                >
+                  <UserPen className="h-4 w-4" />
+                  {copy.profileEditButton}
+                </motion.button>
+              )}
 
               <div className="grid w-full max-w-3xl grid-cols-2 gap-8 sm:grid-cols-4">
                 {familyMembers.length > 0 ? (
@@ -1613,14 +2017,14 @@ function App() {
                             isSelected ? 'border-stone-800' : 'group-hover:border-stone-400',
                           )}
                         />
-                        <span
+                        <RoundedAvatar
+                          src={member.avatar_url ?? undefined}
+                          label={member.name}
                           className={clsx(
-                            'text-4xl font-display italic transition-colors duration-500',
-                            isSelected ? 'text-stone-900' : 'text-stone-300 group-hover:text-stone-600',
+                            'transition-all duration-500',
+                            isSelected ? 'border-stone-900' : 'group-hover:border-stone-400',
                           )}
-                        >
-                          {member.name.slice(0, 1) || '?'}
-                        </span>
+                        />
                         <div className="text-center space-y-2 px-4">
                           <p
                             className={clsx(
@@ -1633,9 +2037,11 @@ function App() {
                           <p className="text-xs uppercase tracking-[0.2em] text-stone-400">
                             {member.role === 'owner' ? copy.memberRoleOwner : copy.memberRoleMember}
                           </p>
-                          <p className="text-[11px] leading-relaxed text-stone-500 break-all">
-                            {member.email}
-                          </p>
+                          {member.bio ? (
+                            <p className="text-[11px] leading-relaxed text-stone-500 line-clamp-2">{member.bio}</p>
+                          ) : (
+                            <p className="text-[11px] leading-relaxed text-stone-500 break-all">{member.email}</p>
+                          )}
                         </div>
                       </div>
                     )
@@ -1762,9 +2168,11 @@ function App() {
               )}
 
               <div className="mt-16 flex justify-center">
-                <button
+                <motion.button
                   onClick={() => setView(shouldShowIntro ? 'intro' : 'dashboard')}
                   disabled={!sessionUser}
+                  whileHover={sessionUser ? { scale: 1.04, y: -2 } : undefined}
+                  whileTap={sessionUser ? { scale: 0.98 } : undefined}
                   className={`group relative flex items-center gap-4 px-12 py-4 transition-all duration-500
                     ${!sessionUser 
                       ? 'opacity-0 pointer-events-none' 
@@ -1774,7 +2182,7 @@ function App() {
                   <span className="text-xs font-medium tracking-[0.3em] uppercase text-stone-900 group-hover:text-stone-600 transition-colors">{copy.enterFamilyButton}</span>
                   <ArrowRight className="w-4 h-4 text-stone-900 group-hover:translate-x-2 transition-transform duration-500" />
                   <div className="absolute bottom-0 left-0 w-full h-px bg-stone-900 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           )}
@@ -1868,6 +2276,28 @@ function App() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                  {sessionUser && (
+                    <motion.button
+                      type="button"
+                      onClick={openProfileEditor}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      className="flex items-center gap-3 rounded-[28px] border border-stone-200 bg-white/70 px-4 py-2 text-left shadow-sm transition hover:border-stone-400"
+                    >
+                      <RoundedAvatar
+                        src={sessionUser.avatar_url ?? undefined}
+                        label={sessionUser.name}
+                        size="sm"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-stone-900">{sessionUser.name}</span>
+                        <span className="text-xs text-stone-400 line-clamp-1">
+                          {sessionUser.bio || copy.profileEditButton}
+                        </span>
+                      </div>
+                      <UserPen className="h-4 w-4 text-stone-300" />
+                    </motion.button>
+                  )}
                   <LanguageSelector
                     language={language}
                     label={copy.languageSelectorLabel}

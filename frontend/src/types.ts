@@ -3,6 +3,8 @@ export type FamilyMember = {
   name: string
   email: string
   role: string
+  avatar_url?: string | null
+  bio?: string | null
 }
 
 export type Family = {
