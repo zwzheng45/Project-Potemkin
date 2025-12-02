@@ -56,6 +56,8 @@ type Copy = {
   signupButton: string
   loginButton: string
   signupDescription: string
+  familyIdAutoHint: string
+  stakeUsageHint: string
   loginDescription: string
   inviteSignupTitle: string
   inviteSignupDescription: string
@@ -103,6 +105,12 @@ type Copy = {
   inviteLinkCopy: string
   inviteLinkCopied: string
   dashIdSuffix: string
+  idReminderTitle: string
+  idReminderDescription: string
+  idReminderMemoHint: string
+  idReminderCopy: string
+  idReminderCopied: string
+  idReminderDismiss: string
   chatEmptyState: string
   chatPlaceholder: string
   guestLabel: string
@@ -145,6 +153,9 @@ const translations = {
     signupButton: 'Create & sign up',
     loginButton: 'Log in',
     signupDescription: 'Create a family and owner account in one step.',
+    familyIdAutoHint: 'Family ID is generated automatically right after creation.',
+    stakeUsageHint:
+      'Set or top up the stake later from the dashboard according to how you plan to use the companion.',
     loginDescription: 'Log in with your family companion account.',
     inviteSignupTitle: 'Join this family',
     inviteSignupDescription: 'You were invited to join {family}. Confirm your details to continue.',
@@ -180,7 +191,8 @@ const translations = {
     modalEditTitle: 'Edit Family',
     modalDescriptionLabel: 'Description',
     modalStakeLabel: 'Stake (BNB)',
-    modalStakeHint: 'Non-negative, synced with on-chain metadata when saved.',
+    modalStakeHint:
+      'Use a non-negative amount that matches how you plan to use the companion; saving syncs it to on-chain metadata.',
     cancelButton: 'Cancel',
     saveButton: 'Save',
     savingButton: 'Saving...',
@@ -197,6 +209,12 @@ const translations = {
     inviteLinkCopy: 'Copy link',
     inviteLinkCopied: 'Copied!',
     dashIdSuffix: '· On Chain',
+  idReminderTitle: 'Save your Family ID',
+  idReminderDescription: 'We generated a unique ID for your family. You will need it to recover this account.',
+  idReminderMemoHint: 'Add it to your notes or password manager now so you can always find it.',
+  idReminderCopy: 'Copy ID',
+  idReminderCopied: 'Copied',
+  idReminderDismiss: 'I saved it',
     chatEmptyState: 'Start conversation with {family}',
     chatPlaceholder: 'Message as {sender}...',
     guestLabel: 'Guest',
@@ -237,6 +255,8 @@ const translations = {
     signupButton: '创建并注册',
     loginButton: '登录',
     signupDescription: '一步创建家庭与拥有者账号。',
+  familyIdAutoHint: '家庭 ID 会在创建完成后自动生成。',
+  stakeUsageHint: '质押金额可在进入控制台后根据实际使用方式再设置或补充。',
     loginDescription: '使用家庭成员邮箱登录。',
     inviteSignupTitle: '加入这个家庭',
     inviteSignupDescription: '你被邀请加入 {family}，确认信息后设置密码即可。',
@@ -272,7 +292,7 @@ const translations = {
     modalEditTitle: '编辑家庭',
     modalDescriptionLabel: '简介',
     modalStakeLabel: '质押金额（BNB）',
-    modalStakeHint: '需为非负数，保存时会同步到链上元数据。',
+  modalStakeHint: '需为非负数，可根据具体使用方式调整，保存后会同步到链上元数据。',
     cancelButton: '取消',
     saveButton: '保存',
     savingButton: '保存中...',
@@ -289,6 +309,12 @@ const translations = {
     inviteLinkCopy: '复制链接',
     inviteLinkCopied: '已复制',
     dashIdSuffix: '· 已上链',
+  idReminderTitle: '请保存你的家庭 ID',
+  idReminderDescription: '我们已为你的家庭生成唯一 ID，找回账号时需要它。',
+  idReminderMemoHint: '现在就把它记到备忘录或密码本里，随时可以查到。',
+  idReminderCopy: '复制 ID',
+  idReminderCopied: '已复制',
+  idReminderDismiss: '我已保存',
     chatEmptyState: '开始与 {family} 对话',
     chatPlaceholder: '以 {sender} 的身份发送消息...',
     guestLabel: '访客',
@@ -329,6 +355,8 @@ const translations = {
     signupButton: "Créer et s'inscrire",
     loginButton: 'Se connecter',
     signupDescription: 'Créez la famille et le compte propriétaire en une fois.',
+  familyIdAutoHint: "L'ID familial est généré automatiquement après la création.",
+  stakeUsageHint: 'Vous pourrez définir ou recharger la mise plus tard selon votre usage dans le tableau de bord.',
     loginDescription: 'Connectez-vous avec votre compte du compagnon familial.',
     inviteSignupTitle: 'Rejoindre cette famille',
     inviteSignupDescription: 'Vous êtes invité à rejoindre {family}. Confirmez vos informations pour continuer.',
@@ -364,7 +392,8 @@ const translations = {
     modalEditTitle: 'Modifier la famille',
     modalDescriptionLabel: 'Description',
     modalStakeLabel: 'Mise (BNB)',
-    modalStakeHint: 'Doit être positive ou nulle, synchronisée on-chain lors de l’enregistrement.',
+    modalStakeHint:
+      'Doit être positive ou nulle. Ajustez-la selon votre usage ; elle sera synchronisée on-chain lors de l’enregistrement.',
     cancelButton: 'Annuler',
     saveButton: 'Enregistrer',
     savingButton: 'Enregistrement...',
@@ -381,6 +410,12 @@ const translations = {
     inviteLinkCopy: 'Copier le lien',
     inviteLinkCopied: 'Copié !',
     dashIdSuffix: '· On-chain',
+  idReminderTitle: 'Enregistrez votre ID familial',
+  idReminderDescription: 'Nous venons de créer un ID unique pour votre famille. Il sera requis pour récupérer le compte.',
+  idReminderMemoHint: 'Notez-le dans vos notes ou votre gestionnaire de mots de passe pour le retrouver à tout moment.',
+  idReminderCopy: "Copier l'ID",
+  idReminderCopied: 'Copié',
+  idReminderDismiss: 'Je l’ai enregistré',
     chatEmptyState: 'Commencez à discuter avec {family}',
     chatPlaceholder: 'Message en tant que {sender}...',
     guestLabel: 'Invité',
@@ -421,6 +456,8 @@ const translations = {
     signupButton: 'Erstellen & registrieren',
     loginButton: 'Anmelden',
     signupDescription: 'Familie und Besitzeraccount in einem Schritt.',
+  familyIdAutoHint: 'Die Familien-ID wird direkt nach der Erstellung automatisch vergeben.',
+  stakeUsageHint: 'Du kannst den Stake später im Dashboard entsprechend deiner Nutzung festlegen oder aufladen.',
     loginDescription: 'Mit deinem Familien-Account anmelden.',
     inviteSignupTitle: 'Dieser Familie beitreten',
     inviteSignupDescription: 'Du wurdest eingeladen, {family} beizutreten. Bestätige deine Daten, um fortzufahren.',
@@ -456,7 +493,8 @@ const translations = {
     modalEditTitle: 'Familie bearbeiten',
     modalDescriptionLabel: 'Beschreibung',
     modalStakeLabel: 'Stake (BNB)',
-    modalStakeHint: 'Darf nicht negativ sein und wird beim Speichern on-chain synchronisiert.',
+    modalStakeHint:
+      'Muss nicht negativ sein. Passe den Betrag an deine Nutzung an; beim Speichern wird er on-chain synchronisiert.',
     cancelButton: 'Abbrechen',
     saveButton: 'Speichern',
     savingButton: 'Speichern...',
@@ -473,6 +511,12 @@ const translations = {
     inviteLinkCopy: 'Link kopieren',
     inviteLinkCopied: 'Kopiert!',
     dashIdSuffix: '· On-chain',
+  idReminderTitle: 'Speichere deine Familien-ID',
+  idReminderDescription: 'Wir haben eine eindeutige ID generiert. Du brauchst sie, um dieses Konto wiederherzustellen.',
+  idReminderMemoHint: 'Notiere sie jetzt in deinen Notizen oder Passwortmanager, damit du sie jederzeit findest.',
+  idReminderCopy: 'ID kopieren',
+  idReminderCopied: 'Kopiert',
+  idReminderDismiss: 'Ich habe sie gespeichert',
     chatEmptyState: 'Beginnen Sie ein Gespräch mit {family}',
     chatPlaceholder: 'Nachricht als {sender}...',
     guestLabel: 'Gast',
@@ -513,6 +557,8 @@ const translations = {
     signupButton: '作成して登録',
     loginButton: 'ログイン',
     signupDescription: '家族とオーナーアカウントを一度に作成。',
+  familyIdAutoHint: '家族 ID は作成完了後に自動で付与されます。',
+  stakeUsageHint: 'ステークはダッシュボードから、実際の利用状況に合わせて後から設定・チャージできます。',
     loginDescription: '家族のアカウントでログイン。',
     inviteSignupTitle: 'この家族に参加',
     inviteSignupDescription: '{family} への招待を受け取りました。情報を確認して続行してください。',
@@ -548,7 +594,7 @@ const translations = {
     modalEditTitle: '家族を編集',
     modalDescriptionLabel: '概要',
     modalStakeLabel: 'ステーク（BNB）',
-    modalStakeHint: '0 以上の数値で、保存時にオンチェーン情報と同期します。',
+  modalStakeHint: '0 以上で、利用状況に合わせて調整できます。保存するとオンチェーン情報と同期されます。',
     cancelButton: 'キャンセル',
     saveButton: '保存',
     savingButton: '保存中...',
@@ -565,6 +611,12 @@ const translations = {
     inviteLinkCopy: 'リンクをコピー',
     inviteLinkCopied: 'コピーしました',
     dashIdSuffix: '· オンチェーン',
+  idReminderTitle: '家族 ID を保存してください',
+  idReminderDescription: '家族専用の ID を発行しました。アカウント復旧時に必要になります。',
+  idReminderMemoHint: 'すぐにメモ帳やパスワード管理アプリに記録して、いつでも確認できるようにしてください。',
+  idReminderCopy: 'ID をコピー',
+  idReminderCopied: 'コピー済み',
+  idReminderDismiss: '保存しました',
     chatEmptyState: '{family} と会話を始めましょう',
     chatPlaceholder: '{sender} としてメッセージ...',
     guestLabel: 'ゲスト',
@@ -651,6 +703,64 @@ const LanguageSelector = ({ language, label, onChange, className }: LanguageSele
   </div>
 )
 
+type FamilyIdReminderProps = {
+  familyId: string
+  copy: Copy
+  onClose: () => void
+}
+
+const FamilyIdReminder = ({ familyId, copy, onClose }: FamilyIdReminderProps) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = async () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(familyId)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-6 py-10 backdrop-blur-sm">
+      <div className="relative w-full max-w-md rounded-3xl border border-stone-200 bg-white p-8 text-stone-900 shadow-2xl">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 text-stone-400 transition-colors hover:text-stone-900"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <p className="text-[10px] uppercase tracking-[0.35em] text-stone-400">{copy.idReminderTitle}</p>
+        <p className="mt-4 text-base leading-relaxed text-stone-600">{copy.idReminderDescription}</p>
+        <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700 flex items-center justify-between gap-4">
+          <span className="font-mono text-base tracking-widest text-stone-900 break-all">
+            {familyId}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-stone-900 transition-colors hover:bg-white"
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span>{copied ? copy.idReminderCopied : copy.idReminderCopy}</span>
+          </button>
+        </div>
+        <p className="mt-4 text-xs text-stone-500">{copy.idReminderMemoHint}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 w-full rounded-2xl bg-stone-900 px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.3em] text-white transition-colors hover:bg-stone-800"
+        >
+          {copy.idReminderDismiss}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const queryClient = useQueryClient()
   const [authToken, setAuthToken] = useState<string | null>(() => {
@@ -693,6 +803,7 @@ function App() {
   const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
   const [isLandingAtTop, setIsLandingAtTop] = useState(true)
+  const [signupFamilyId, setSignupFamilyId] = useState<string | null>(null)
 
   const clearInviteFromUrl = () => {
     if (typeof window === 'undefined') return
@@ -915,7 +1026,10 @@ function App() {
 
   const signupMutation = useMutation<AuthResponse, Error, SignupPayload>({
     mutationFn: (payload) => api.signup(payload),
-    onSuccess: (resp) => handleAuthSuccess(resp, true),
+    onSuccess: (resp) => {
+      setSignupFamilyId(resp.family.family_id)
+      handleAuthSuccess(resp, true)
+    },
     onError: (error: Error) => {
       setFormError(error.message)
     },
@@ -1029,17 +1143,6 @@ function App() {
     selectedFamily && sessionUser
       ? selectedFamily.owner_id === sessionUser.user_id || sessionUser.role === 'owner'
       : false
-
-  const normalizeStakeInput = (value: string) => {
-    if (value === '' || value === '-') return value
-    const numericValue = Number(value)
-    if (Number.isNaN(numericValue)) return ''
-    return numericValue < 0 ? '0' : value
-  }
-
-  const handleTaskPriceChange = (value: string) => {
-    setSignupForm((prev) => ({ ...prev, task_price: normalizeStakeInput(value) }))
-  }
 
   const handleSignup = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -1206,6 +1309,13 @@ function App() {
     <div className="relative min-h-screen overflow-hidden bg-surface-50 text-stone-800 selection:bg-stone-200">
       <DecorativeBackground />
       <div className="relative z-10 flex min-h-screen flex-col">
+        {signupFamilyId ? (
+          <FamilyIdReminder
+            familyId={signupFamilyId}
+            copy={copy}
+            onClose={() => setSignupFamilyId(null)}
+          />
+        ) : null}
         {view !== 'dashboard' && (view !== 'landing' || isLandingAtTop) && (
           <div className="fixed right-6 top-2 sm:top-3 md:top-4 lg:top-5 z-30">
             <LanguageSelector
@@ -1339,23 +1449,9 @@ function App() {
                               }
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <input
-                              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                              placeholder={copy.familyIdPlaceholder}
-                              value={signupForm.family_id}
-                              onChange={(e) =>
-                                setSignupForm((prev) => ({ ...prev, family_id: e.target.value }))
-                              }
-                            />
-                            <input
-                              type="number"
-                              min={0}
-                              className="w-full rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/10"
-                              placeholder={copy.familyStakePlaceholder}
-                              value={signupForm.task_price}
-                              onChange={(e) => handleTaskPriceChange(e.target.value)}
-                            />
+                          <div className="rounded-2xl border border-dashed border-stone-200 bg-white/70 px-4 py-3 text-xs leading-relaxed text-stone-500">
+                            <p className="text-stone-700 font-medium">{copy.familyIdAutoHint}</p>
+                            <p className="mt-2">{copy.stakeUsageHint}</p>
                           </div>
                         </>
                       )}
