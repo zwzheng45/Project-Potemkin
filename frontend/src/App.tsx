@@ -1152,6 +1152,22 @@ function App() {
     })
   }
 
+  const handleRefresh = () => {
+    if (!activeFamilyId) return
+    if (dashboardView === 'chat') {
+      setChatLogs((prev) => {
+        if (!(prev[activeFamilyId]?.length)) return prev
+        return { ...prev, [activeFamilyId]: [] }
+      })
+      setChatDraft('')
+      setChatError(null)
+      return
+    }
+    if (authToken) {
+      queryClient.invalidateQueries({ queryKey: ['memory', activeFamilyId, authToken] })
+    }
+  }
+
   const handleLogout = () => {
     setAuthToken(null)
     setSessionUser(null)
@@ -1774,11 +1790,7 @@ function App() {
                     </button>
                   </div>
                   <button
-                    onClick={() =>
-                      activeFamilyId &&
-                      authToken &&
-                      queryClient.invalidateQueries({ queryKey: ['memory', activeFamilyId, authToken] })
-                    }
+                    onClick={handleRefresh}
                     className="text-stone-400 hover:text-stone-900 transition-colors"
                     title={copy.refreshTooltip}
                   >
