@@ -635,6 +635,7 @@ function App() {
   const [shouldShowIntro, setShouldShowIntro] = useState(false)
   const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
+  const [isLandingAtTop, setIsLandingAtTop] = useState(true)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -678,6 +679,22 @@ function App() {
       setView('landing')
     }
   }, [selectedFamilyId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (view !== 'landing') {
+      setIsLandingAtTop(true)
+      return
+    }
+    const handleScroll = () => {
+      setIsLandingAtTop(window.scrollY <= 10)
+    }
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [view])
 
   const healthQuery = useQuery<HealthStatus>({
     queryKey: ['health'],
@@ -1004,8 +1021,8 @@ function App() {
     <div className="relative min-h-screen overflow-hidden bg-surface-50 text-stone-800 selection:bg-stone-200">
       <DecorativeBackground />
       <div className="relative z-10 flex min-h-screen flex-col">
-        {view !== 'dashboard' && (
-          <div className="fixed right-6 top-6 z-30">
+        {view !== 'dashboard' && (view !== 'landing' || isLandingAtTop) && (
+          <div className="fixed right-6 top-2 sm:top-3 md:top-4 lg:top-5 z-30">
             <LanguageSelector
               language={language}
               label={copy.languageSelectorLabel}
