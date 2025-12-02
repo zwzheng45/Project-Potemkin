@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, List
 
 from fastapi import Depends, FastAPI, HTTPException, status
@@ -6,11 +7,15 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
 
 from family_companion.auth import AuthService, UserAccount
+from family_companion.config import settings
 from family_companion.schemas import (
+    AcceptInviteRequest,
     AuthResponse,
     ChatResponse,
     FamilyDetailResponse,
     FamilyResponse,
+    InviteInfoResponse,
+    InviteLinkResponse,
     InviteMemberRequest,
     LoginRequest,
     MemberResponse,
@@ -57,6 +62,11 @@ def _member_from_user(user: UserAccount) -> MemberResponse:
         email=user.email,
         role=user.role,
     )
+
+
+def _invite_url(token: str) -> str:
+    frontend_base = settings.frontend_base_url.rstrip("/")
+    return f"{frontend_base}/?invite={token}"
 
 
 def current_user(
@@ -138,6 +148,50 @@ def login(req: LoginRequest) -> AuthResponse:
     )
 
 
+@app.get("/auth/invite/{token}", response_model=InviteInfoResponse)
+def invite_info(token: str) -> InviteInfoResponse:
+    invite = auth.get_invite(token)
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    family = service.state.get_family(invite.family_id)
+    if not family:
+        raise HTTPException(status_code=404, detail="Family not found for invite")
+    expired = invite.expires_at is not None and invite.expires_at < time.time()
+    return InviteInfoResponse(
+        invite_token=invite.token,
+        family_id=invite.family_id,
+        family_name=family.get("name", invite.family_id),
+        email=invite.email,
+        name=invite.name,
+        role=invite.role,
+        expires_at=invite.expires_at,
+        used=bool(invite.used_at),
+        expired=expired,
+    )
+
+
+@app.post("/auth/invite/accept", response_model=AuthResponse)
+def accept_invite(req: AcceptInviteRequest) -> AuthResponse:
+    try:
+        invited_user = auth.accept_invite(
+            req.token,
+            email=req.email,
+            password=req.password,
+            name=req.name,
+        )
+        token, user = auth.authenticate(req.email, req.password)
+        family = service.family_detail(user.family_id, invited_user)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return AuthResponse(
+        token=token,
+        user=_member_from_user(user),
+        family=FamilyDetailResponse(**family),
+    )
+
+
 @app.get("/me", response_model=ProfileResponse)
 def me(user: UserAccount = Depends(current_user)) -> ProfileResponse:
     family = service.family_detail(user.family_id, user)
@@ -166,12 +220,12 @@ def register_family_blocked() -> FamilyResponse:
     )
 
 
-@app.post("/families/{family_id}/members", response_model=MemberResponse)
+@app.post("/families/{family_id}/members", response_model=InviteLinkResponse)
 def invite_member(
     family_id: str,
     req: InviteMemberRequest,
     user: UserAccount = Depends(current_user),
-) -> MemberResponse:
+) -> InviteLinkResponse:
     family = service.state.get_family(family_id)
     if not family:
         raise HTTPException(status_code=404, detail="Family not found")
@@ -180,16 +234,25 @@ def invite_member(
             status_code=403, detail="Only the family owner can invite members."
         )
     try:
-        new_user = auth.register_user(
+        invite = auth.create_invite(
             family_id=family_id,
             email=req.email,
-            password=req.password,
             name=req.name,
             role=req.role,
+            created_by=user.user_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return _member_from_user(new_user)
+    return InviteLinkResponse(
+        invite_token=invite.token,
+        invite_url=_invite_url(invite.token),
+        family_id=family_id,
+        family_name=family.get("name", family_id),
+        email=invite.email,
+        name=invite.name,
+        role=invite.role,
+        expires_at=invite.expires_at,
+    )
 
 
 @app.post("/families/{family_id}/messages", response_model=ChatResponse)

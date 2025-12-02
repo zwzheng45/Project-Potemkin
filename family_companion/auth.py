@@ -10,6 +10,7 @@ from family_companion.state import FamilyStateStore
 
 PASSWORD_ITERATIONS = 120_000
 SESSION_TTL_SECONDS = 7 * 24 * 3600  # 7 days
+INVITE_TTL_SECONDS = 7 * 24 * 3600  # 7 days
 
 
 @dataclass
@@ -19,6 +20,19 @@ class UserAccount:
     email: str
     name: str
     role: str = "member"
+
+
+@dataclass
+class Invite:
+    token: str
+    family_id: str
+    email: str
+    name: str
+    role: str = "member"
+    created_by: Optional[str] = None
+    created_at: Optional[float] = None
+    expires_at: Optional[float] = None
+    used_at: Optional[float] = None
 
 
 class SessionManager:
@@ -80,6 +94,19 @@ class AuthService:
             role=payload.get("role", "member"),
         )
 
+    def _invite_from_payload(self, token: str, payload: Dict[str, object]) -> Invite:
+        return Invite(
+            token=token,
+            family_id=str(payload["family_id"]),
+            email=str(payload.get("email", "")),
+            name=str(payload.get("name") or payload.get("email") or ""),
+            role=str(payload.get("role", "member")),
+            created_by=payload.get("created_by"),
+            created_at=payload.get("created_at"),
+            expires_at=payload.get("expires_at"),
+            used_at=payload.get("used_at"),
+        )
+
     def register_user(
         self,
         *,
@@ -110,6 +137,74 @@ class AuthService:
         )
         self.state.add_family_member(family_id, user_id)
         return self._to_model(user_id, self.state.get_user(user_id) or {})
+
+    def create_invite(
+        self,
+        *,
+        family_id: str,
+        email: str,
+        name: str,
+        role: str = "member",
+        created_by: Optional[str] = None,
+    ) -> Invite:
+        if not self.state.get_family(family_id):
+            raise ValueError("family does not exist")
+        if self.state.find_user_by_email(email):
+            raise ValueError("email already registered")
+
+        token = secrets.token_urlsafe(24)
+        created_at = time.time()
+        payload: Dict[str, object] = {
+            "family_id": family_id,
+            "email": email,
+            "name": name or email,
+            "role": role,
+            "created_at": created_at,
+            "expires_at": created_at + INVITE_TTL_SECONDS,
+        }
+        if created_by:
+            payload["created_by"] = created_by
+        self.state.save_invite(token, payload)
+        return self._invite_from_payload(token, payload)
+
+    def get_invite(self, token: str) -> Optional[Invite]:
+        payload = self.state.get_invite(token)
+        if not payload:
+            return None
+        return self._invite_from_payload(token, payload)
+
+    def require_invite(self, token: str) -> Invite:
+        invite = self.get_invite(token)
+        if not invite:
+            raise ValueError("invalid invite token")
+        if invite.used_at:
+            raise ValueError("invite already used")
+        if invite.expires_at and invite.expires_at < time.time():
+            raise ValueError("invite expired")
+        if not self.state.get_family(invite.family_id):
+            raise ValueError("family does not exist")
+        return invite
+
+    def accept_invite(
+        self,
+        token: str,
+        *,
+        email: str,
+        password: str,
+        name: Optional[str] = None,
+    ) -> UserAccount:
+        invite = self.require_invite(token)
+        if invite.email and invite.email.lower() != email.lower():
+            raise ValueError("invite email mismatch")
+        user = self.register_user(
+            family_id=invite.family_id,
+            email=email,
+            password=password,
+            name=name or invite.name or email,
+            role=invite.role,
+        )
+        self.state.mark_invite_used(token)
+        return user
 
     def authenticate(self, email: str, password: str) -> Tuple[str, UserAccount]:
         found = self.state.find_user_by_email(email)
