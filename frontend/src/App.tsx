@@ -2272,30 +2272,88 @@ function App() {
               transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               className="flex h-screen flex-col bg-surface-50"
             >
-              <header className="relative flex items-center justify-between px-8 py-6 bg-surface-50 border-b border-stone-200">
-                <div className="flex items-center gap-6">
-                  <button
-                    onClick={() => setView('identity')}
-                    className="text-stone-400 hover:text-stone-900 transition-colors"
-                  >
-                    <ChevronLeft size={20} strokeWidth={1.5} />
-                  </button>
-                  <div>
-                    <h2 className="text-2xl font-display italic text-stone-900">
-                      {selectedFamily?.name}
-                    </h2>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400 mt-1">
-                      ID: {selectedFamily?.family_id} {copy.dashIdSuffix}
-                    </p>
+              <header className="border-b border-stone-200 bg-surface-50 px-6 py-6 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 sm:gap-6">
+                    <button
+                      onClick={() => setView('identity')}
+                      className="text-stone-400 hover:text-stone-900 transition-colors"
+                    >
+                      <ChevronLeft size={20} strokeWidth={1.5} />
+                    </button>
+                    <div>
+                      <h2 className="text-2xl font-display italic text-stone-900">
+                        {selectedFamily?.name}
+                      </h2>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400 mt-1">
+                        ID: {selectedFamily?.family_id} {copy.dashIdSuffix}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+                    {sessionUser && (
+                      <motion.button
+                        type="button"
+                        onClick={openProfileEditor}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="flex items-center gap-3 rounded-[28px] border border-stone-200 bg-white/70 px-4 py-2 text-left shadow-sm transition hover:border-stone-400"
+                      >
+                        <RoundedAvatar
+                          src={sessionUser.avatar_url ?? undefined}
+                          label={sessionUser.name}
+                          size="sm"
+                        />
+                        <div className="flex flex-col max-w-[8rem] sm:max-w-[12rem]">
+                          <span className="text-sm font-medium text-stone-900 line-clamp-1">{sessionUser.name}</span>
+                          <span className="text-xs text-stone-400 line-clamp-1">
+                            {sessionUser.bio || copy.profileEditButton}
+                          </span>
+                        </div>
+                        <UserPen className="h-4 w-4 text-stone-300" />
+                      </motion.button>
+                    )}
+                    <LanguageSelector
+                      language={language}
+                      label={copy.languageSelectorLabel}
+                      onChange={setLanguage}
+                    />
+                    <div className="hidden items-center gap-3 text-xs tracking-widest uppercase text-stone-500 sm:flex">
+                      <span className="w-2 h-2 rounded-full bg-stone-300" />
+                      <span>
+                        {copy.identityLabelPrefix} {sessionUser ? senderLabel : copy.identityUnsetLabel}
+                      </span>
+                      <button
+                        onClick={() => setView('identity')}
+                        className="text-stone-900 border-b border-stone-300 hover:border-stone-900 transition-colors pb-0.5"
+                      >
+                        {copy.switchLabel}
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleRefresh}
+                      className="text-stone-400 hover:text-stone-900 transition-colors"
+                      title={copy.refreshTooltip}
+                    >
+                      <RefreshCcw size={18} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="text-[10px] uppercase tracking-[0.25em] text-stone-400 hover:text-stone-900 transition-colors"
+                    >
+                      {copy.logoutLabel}
+                    </button>
                   </div>
                 </div>
 
-                {/* View Toggle */}
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex gap-8">
+                <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8">
                   <button
                     onClick={() => setDashboardView('chat')}
                     className={`text-xs uppercase tracking-[0.2em] transition-colors ${
-                      dashboardView === 'chat' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
+                      dashboardView === 'chat'
+                        ? 'text-stone-900 font-medium'
+                        : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
                     {copy.conversationTabLabel}
@@ -2303,65 +2361,12 @@ function App() {
                   <button
                     onClick={() => setDashboardView('memory')}
                     className={`text-xs uppercase tracking-[0.2em] transition-colors ${
-                      dashboardView === 'memory' ? 'text-stone-900 font-medium' : 'text-stone-400 hover:text-stone-600'
+                      dashboardView === 'memory'
+                        ? 'text-stone-900 font-medium'
+                        : 'text-stone-400 hover:text-stone-600'
                     }`}
                   >
                     {copy.fileManagementTabLabel}
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  {sessionUser && (
-                    <motion.button
-                      type="button"
-                      onClick={openProfileEditor}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                      className="flex items-center gap-3 rounded-[28px] border border-stone-200 bg-white/70 px-4 py-2 text-left shadow-sm transition hover:border-stone-400"
-                    >
-                      <RoundedAvatar
-                        src={sessionUser.avatar_url ?? undefined}
-                        label={sessionUser.name}
-                        size="sm"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-stone-900">{sessionUser.name}</span>
-                        <span className="text-xs text-stone-400 line-clamp-1">
-                          {sessionUser.bio || copy.profileEditButton}
-                        </span>
-                      </div>
-                      <UserPen className="h-4 w-4 text-stone-300" />
-                    </motion.button>
-                  )}
-                  <LanguageSelector
-                    language={language}
-                    label={copy.languageSelectorLabel}
-                    onChange={setLanguage}
-                  />
-                  <div className="hidden items-center gap-3 text-xs tracking-widest uppercase text-stone-500 sm:flex">
-                    <span className="w-2 h-2 rounded-full bg-stone-300" />
-                    <span>
-                      {copy.identityLabelPrefix} {sessionUser ? senderLabel : copy.identityUnsetLabel}
-                    </span>
-                    <button
-                      onClick={() => setView('identity')}
-                      className="text-stone-900 border-b border-stone-300 hover:border-stone-900 transition-colors pb-0.5"
-                    >
-                      {copy.switchLabel}
-                    </button>
-                  </div>
-                  <button
-                    onClick={handleRefresh}
-                    className="text-stone-400 hover:text-stone-900 transition-colors"
-                    title={copy.refreshTooltip}
-                  >
-                    <RefreshCcw size={18} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="text-[10px] uppercase tracking-[0.25em] text-stone-400 hover:text-stone-900 transition-colors"
-                  >
-                    {copy.logoutLabel}
                   </button>
                 </div>
               </header>
