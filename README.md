@@ -22,7 +22,6 @@ pip install -r requirements.txt
 - `OPENAI_MODEL_NAME` (default `gpt-4.1-mini`)
 - `MEMBASE_ACCOUNT` / `MEMBASE_SECRET_KEY` / `MEMBASE_ID` (optional; enables on-chain auth on BNB Testnet)
 - `MEMBASE_HUB` (Membase Hub endpoint, defaults to testnet)
-- `FRONTEND_BASE_URL` (used to build invite URLs; defaults to `http://localhost:8080`)
 
 3) Run the service
 ```bash
@@ -60,20 +59,7 @@ Invite another family member (owner only):
 curl -X POST http://localhost:8000/families/li-family/members \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Dad","email":"dad@example.com","role":"member"}'
-# -> returns {"invite_url":"http://localhost:8080/?invite=<token>",...}
-```
-
-Optional: inspect an invite:
-```bash
-curl http://localhost:8000/auth/invite/<token>
-```
-
-Accept the invite (new member sets their own password):
-```bash
-curl -X POST http://localhost:8000/auth/invite/accept \
-  -H "Content-Type: application/json" \
-  -d '{"token":"<token>","name":"Dad","email":"dad@example.com","password":"pass"}'
+  -d '{"name":"Dad","email":"dad@example.com","password":"pass"}'
 ```
 
 Chat as the logged-in user (per-user chat log + shared family memory):
