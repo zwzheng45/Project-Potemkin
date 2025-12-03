@@ -792,7 +792,12 @@ const RoundedAvatar = ({ src, label, size = 'md', className }: RoundedAvatarProp
       : size === 'sm'
         ? 'h-10 w-10'
         : 'h-14 w-14'
-  const radiusClass = size === 'lg' ? 'rounded-[36px]' : 'rounded-[24px]'
+  const radiusClass =
+    size === 'lg'
+      ? 'rounded-[18px]'
+      : size === 'sm'
+        ? 'rounded-[12px]'
+        : 'rounded-[16px]'
 
   return (
     <div
@@ -2396,16 +2401,21 @@ function App() {
                                   msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
                                 )}
                               >
-                                <div
-                                  className={clsx(
-                                    'flex h-8 w-8 shrink-0 items-center justify-center text-xs font-medium tracking-widest uppercase',
+                                <RoundedAvatar
+                                  src={msg.role === 'user' ? sessionUser?.avatar_url ?? undefined : undefined}
+                                  label={
                                     msg.role === 'user'
-                                      ? 'text-stone-900 border border-stone-900'
-                                      : 'text-stone-400 border border-stone-300',
+                                      ? sessionUser?.name || copy.chatUserBadge
+                                      : copy.chatAIBadge
+                                  }
+                                  size="sm"
+                                  className={clsx(
+                                    'shrink-0',
+                                    msg.role === 'user'
+                                      ? 'border-stone-900 bg-white text-stone-900'
+                                      : 'border-stone-200 bg-white text-stone-400',
                                   )}
-                                >
-                                  {msg.role === 'user' ? copy.chatUserBadge : copy.chatAIBadge}
-                                </div>
+                                />
                                 <div
                                   className={clsx(
                                     'max-w-[80%] text-base leading-relaxed font-light tracking-wide',
