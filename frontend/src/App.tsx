@@ -833,8 +833,20 @@ const FamilyIdReminder = ({ familyId, copy, onClose }: FamilyIdReminderProps) =>
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-6 py-10 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-3xl border border-stone-200 bg-white p-8 text-stone-900 shadow-2xl">
+    <motion.div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-6 py-10 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+    >
+      <motion.div
+        className="relative w-full max-w-md rounded-3xl border border-stone-200 bg-white p-8 text-stone-900 shadow-2xl"
+        initial={{ opacity: 0.6, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -12 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -844,8 +856,8 @@ const FamilyIdReminder = ({ familyId, copy, onClose }: FamilyIdReminderProps) =>
         </button>
         <p className="text-[10px] uppercase tracking-[0.35em] text-stone-400">{copy.idReminderTitle}</p>
         <p className="mt-4 text-base leading-relaxed text-stone-600">{copy.idReminderDescription}</p>
-        <div className="mt-6 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700 flex items-center justify-between gap-4">
-          <span className="font-mono text-base tracking-widest text-stone-900 break-all">
+        <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
+          <span className="break-all font-mono text-base tracking-widest text-stone-900">
             {familyId}
           </span>
           <button
@@ -865,8 +877,8 @@ const FamilyIdReminder = ({ familyId, copy, onClose }: FamilyIdReminderProps) =>
         >
           {copy.idReminderDismiss}
         </button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -1077,6 +1089,7 @@ function App() {
     }))
   }, [])
   const [signupFamilyId, setSignupFamilyId] = useState<string | null>(null)
+  const [pendingViewAfterReminder, setPendingViewAfterReminder] = useState<'identity' | 'intro' | null>(null)
 
   const clearInviteFromUrl = () => {
     if (typeof window === 'undefined') return
@@ -1285,7 +1298,11 @@ function App() {
     placeholderData: selectedFamily ? memoryCache[selectedFamily.family_id] : undefined,
   })
 
-  const handleAuthSuccess = (resp: AuthResponse, showIntro = false) => {
+  const handleAuthSuccess = (
+    resp: AuthResponse,
+    showIntro = false,
+    deferViewUntilReminder = false,
+  ) => {
     setAuthToken(resp.token)
     setSessionUser(applyProfileOverrides(resp.user))
     setSelectedFamilyId(resp.family.family_id)
@@ -1318,14 +1335,20 @@ function App() {
     } satisfies ProfileResponse)
     queryClient.setQueryData(['family', resp.family.family_id], resp.family)
     setShouldShowIntro(showIntro)
-    setView(showIntro ? 'intro' : 'identity')
+    const nextView: 'intro' | 'identity' = showIntro ? 'intro' : 'identity'
+    if (deferViewUntilReminder) {
+      setPendingViewAfterReminder(nextView)
+    } else {
+      setPendingViewAfterReminder(null)
+      setView(nextView)
+    }
   }
 
   const signupMutation = useMutation<AuthResponse, Error, SignupPayload>({
     mutationFn: (payload) => api.signup(payload),
     onSuccess: (resp) => {
       setSignupFamilyId(resp.family.family_id)
-      handleAuthSuccess(resp, true)
+      handleAuthSuccess(resp, true, true)
     },
     onError: (error: Error) => {
       setFormError(error.message)
@@ -1660,7 +1683,16 @@ function App() {
     setShouldShowIntro(false)
     setView('landing')
     setIsEditingProfile(false)
+    setPendingViewAfterReminder(null)
     queryClient.clear()
+  }
+
+  const handleFamilyIdReminderClose = () => {
+    setSignupFamilyId(null)
+    if (pendingViewAfterReminder) {
+      setView(pendingViewAfterReminder)
+      setPendingViewAfterReminder(null)
+    }
   }
 
   useEffect(() => {
@@ -1686,13 +1718,16 @@ function App() {
     <div className="relative min-h-screen overflow-hidden bg-surface-50 text-stone-800 selection:bg-stone-200">
       <DecorativeBackground />
       <div className="relative z-10 flex min-h-screen flex-col">
-        {signupFamilyId ? (
-          <FamilyIdReminder
-            familyId={signupFamilyId}
-            copy={copy}
-            onClose={() => setSignupFamilyId(null)}
-          />
-        ) : null}
+        <AnimatePresence>
+          {signupFamilyId ? (
+            <FamilyIdReminder
+              key="family-id-reminder"
+              familyId={signupFamilyId}
+              copy={copy}
+              onClose={handleFamilyIdReminderClose}
+            />
+          ) : null}
+        </AnimatePresence>
         <AnimatePresence>
           {isEditingProfile && sessionUser ? (
             <ProfileEditModal
