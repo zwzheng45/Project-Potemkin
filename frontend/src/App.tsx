@@ -1743,12 +1743,15 @@ function App() {
     setHasEventChanges(false)
   }, [timelineEvents, hasEventChanges, updateEventsMutation.isPending, convertToDrafts])
   const displayEvents = useMemo(() => {
-    const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/
     const getTimestamp = (value?: string) => {
       if (!value) return null
-      const trimmed = value.trim()
-      if (!isoDatePattern.test(trimmed)) return null
-      const parsed = Date.parse(trimmed)
+      const digits = value.replace(/\D/g, '').slice(0, 8)
+      if (digits.length < 4) return null
+      const year = digits.slice(0, 4)
+      const month = digits.length >= 6 ? digits.slice(4, 6) : '01'
+      const day = digits.length === 8 ? digits.slice(6, 8) : '01'
+      const isoDate = `${year}-${month}-${day}`
+      const parsed = Date.parse(isoDate)
       return Number.isNaN(parsed) ? null : parsed
     }
     return eventDrafts
