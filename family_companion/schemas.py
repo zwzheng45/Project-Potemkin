@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 class CreateFamilyRequest(BaseModel):
     name: str = Field(..., description="家庭名称")
     description: str = Field("", description="家庭/家庭成员的简介或陪伴偏好")
-    family_id: Optional[str] = Field(None, description="可选自定义family_id，如果不填则自动生成")
+    family_id: Optional[str] = Field(
+        None, description="可选自定义family_id，如果不填则随机生成唯一ID"
+    )
     task_price: Optional[int] = Field(
         None, description="在链上创建家庭空间的stake价格(可选)"
     )
@@ -55,7 +57,7 @@ class SignupRequest(BaseModel):
     description: str = Field("", description="家庭简介")
     language: str = Field("zh", description="家庭首选语言")
     family_id: Optional[str] = Field(
-        None, description="可选自定义family_id，如果不填则自动生成"
+        None, description="可选自定义family_id，如果不填则随机生成唯一ID"
     )
     task_price: Optional[int] = Field(None, description="链上空间stake(可选)")
     user_name: str = Field(..., description="家庭创建者姓名")

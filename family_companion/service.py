@@ -1,6 +1,9 @@
+import hashlib
 import logging
 import re
-from typing import Dict, List, Optional
+import secrets
+import time
+from typing import Dict, List, Optional, Set
 
 from family_companion.agent import FamilyAgent
 from family_companion.auth import UserAccount
@@ -14,6 +17,19 @@ logger = logging.getLogger(__name__)
 def _slugify(value: str) -> str:
     cleaned = re.sub(r"[^a-zA-Z0-9]+", "-", value.strip()).strip("-")
     return cleaned.lower() or "family"
+
+
+def _generate_family_id(name: str, existing_ids: Optional[Set[str]] = None) -> str:
+    """Generate a unique, human-friendly family id with a random suffix."""
+    existing = existing_ids or set()
+    prefix = (_slugify(name) or "family")[:24]
+    for _ in range(8):
+        random_seed = f"{time.time_ns()}-{secrets.token_hex(6)}-{prefix}"
+        digest = hashlib.sha256(random_seed.encode("utf-8")).hexdigest()
+        candidate = f"{prefix}-{digest[:10]}"
+        if candidate not in existing:
+            return candidate
+    raise RuntimeError("Failed to generate unique family id")
 
 
 class FamilyService:
@@ -54,7 +70,8 @@ class FamilyService:
         owner_id: Optional[str] = None,
         allow_existing: bool = False,
     ) -> FamilyAgent:
-        fid = family_id or _slugify(name)
+        normalized_family_id = family_id.strip() if family_id else ""
+        fid = normalized_family_id or _generate_family_id(name, set(self.agents.keys()))
         if fid in self.agents:
             if allow_existing:
                 return self.agents[fid]
