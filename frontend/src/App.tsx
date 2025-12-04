@@ -1401,14 +1401,19 @@ function App() {
         if (hasImage && typeof rawImage === 'string' && rawImage.length > 0) {
           payload.image_data = rawImage
         }
-        const userId = event.user_id || defaultUser?.user_id
-        const userName =
-          event.user_name || (event.user_id ? undefined : defaultUser?.name)
+        const userId = typeof event.user_id === 'string' ? event.user_id.trim() : event.user_id
+        const userName = typeof event.user_name === 'string' ? event.user_name.trim() : event.user_name
         if (userId) {
           payload.user_id = userId
         }
         if (userName) {
           payload.user_name = userName
+        }
+        if (!userId && !userName && defaultUser) {
+          payload.user_id = defaultUser.user_id
+          if (defaultUser.name) {
+            payload.user_name = defaultUser.name
+          }
         }
         sanitized.push(payload)
       })

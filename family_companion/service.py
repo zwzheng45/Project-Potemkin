@@ -208,6 +208,12 @@ class FamilyService:
                 image_data = str(event.get("image_data") or "").strip()
                 event_user_id = str(event.get("user_id") or "").strip()
                 event_user_name = str(event.get("user_name") or "").strip()
+                if not event_user_id and event_user_name:
+                    members = self._members_for_family(family_id)
+                    for uid, member in members.items():
+                        if member.name.strip() == event_user_name:
+                            event_user_id = uid
+                            break
             payload: Dict[str, object] = {"content": content}
             if date:
                 payload["date"] = date

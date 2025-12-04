@@ -228,17 +228,25 @@ class FamilyMemoryManager:
 
     def snapshot(self, family_id: str, user_id: Optional[str] = None) -> dict:
         memory = self.get_or_create(family_id)
+        important_events = []
+        for msg in memory.get_ltm(self._events_conversation_id(family_id), recent_n=5):
+            meta = (getattr(msg, "metadata", {}) or {})
+            event_payload = {"content": msg.content}
+            date = str(meta.get("event_date") or "").strip()
+            user_id = str(meta.get("user_id") or "").strip()
+            user_name = str(meta.get("source") or meta.get("speaker") or "").strip()
+            if date:
+                event_payload["date"] = date
+            if user_id:
+                event_payload["user_id"] = user_id
+            if user_name:
+                event_payload["user_name"] = user_name
+            important_events.append(event_payload)
         snapshot = {
             "stm": [m.content for m in memory.get(conversation_id=family_id, recent_n=6)],
             "ltm": [m.content for m in memory.get_ltm(family_id, recent_n=3)],
             "profile": [m.content for m in memory.get_profile(recent_n=1)],
-            "important_events": [
-                {
-                    "content": m.content,
-                    "date": (getattr(m, "metadata", {}) or {}).get("event_date"),
-                }
-                for m in memory.get_ltm(self._events_conversation_id(family_id), recent_n=5)
-            ],
+            "important_events": important_events,
             "public": [
                 m.content for m in memory.get_ltm(self._public_conversation_id(family_id), recent_n=5)
             ],
