@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ComponentPropsWithoutRef, FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { AnimatePresence, motion } from 'framer-motion'
+import ReactMarkdown, { type Components } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 import {
   ArrowRight,
   Bot,
@@ -749,6 +754,13 @@ const getInitialLanguage = (): SupportedLanguage => {
   return stored && isSupportedLanguage(stored) ? stored : 'en'
 }
 
+const normalizeMathDelimiters = (content: string): string =>
+  content
+    // Convert \[ ... \] to $$ ... $$ for display math
+    .replace(/\\\[(.+?)\\\]/gs, (_, expr) => `$$${expr}$$`)
+    // Convert \( ... \) to $ ... $ for inline math
+    .replace(/\\\((.+?)\\\)/gs, (_, expr) => `$${expr}$`)
+
 const DecorativeBackground = () => (
   <>
     <div className="pointer-events-none absolute inset-0 bg-surface-50" />
@@ -836,6 +848,105 @@ const RoundedAvatar = ({ src, label, size = 'md', className }: RoundedAvatarProp
       )}
     </div>
   )
+}
+
+type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & {
+  inline?: boolean
+  node?: unknown
+}
+
+const markdownComponents: Components = {
+  p: ({ node: _node, children, ...props }) => (
+    <p className="mb-3 last:mb-0 whitespace-pre-wrap" {...props}>
+      {children}
+    </p>
+  ),
+  a: ({ node: _node, href, children, ...props }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer noopener"
+      className="text-stone-900 underline underline-offset-2 decoration-stone-300 hover:text-stone-700 break-words"
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+  ul: ({ node: _node, children, ...props }) => (
+    <ul className="mb-3 list-disc space-y-1 pl-5 text-left last:mb-0" {...props}>
+      {children}
+    </ul>
+  ),
+  ol: ({ node: _node, children, ...props }) => (
+    <ol className="mb-3 list-decimal space-y-1 pl-5 text-left last:mb-0" {...props}>
+      {children}
+    </ol>
+  ),
+  li: ({ node: _node, children, ...props }) => (
+    <li className="leading-relaxed" {...props}>
+      {children}
+    </li>
+  ),
+  blockquote: ({ node: _node, children, ...props }) => (
+    <blockquote
+      className="mb-3 border-l-4 border-stone-200 bg-white/60 px-4 py-2 text-left italic text-stone-700 last:mb-0"
+      {...props}
+    >
+      {children}
+    </blockquote>
+  ),
+  code({ inline, className, children, node: _node, ...props }: MarkdownCodeProps) {
+    if (inline) {
+      return (
+        <code
+          className={clsx(
+            'rounded-md bg-stone-100 px-1.5 py-0.5 font-mono text-sm text-stone-800',
+            className,
+          )}
+          {...props}
+        >
+          {children}
+        </code>
+      )
+    }
+    const codeText = String(children).replace(/\n$/, '')
+    return (
+      <pre className="mb-3 overflow-x-auto rounded-2xl bg-stone-900 p-4 text-sm text-stone-100 last:mb-0">
+        <code className={clsx('font-mono leading-relaxed', className)} {...props}>
+          {codeText}
+        </code>
+      </pre>
+    )
+  },
+  table: ({ node: _node, children, ...props }) => (
+    <div className="mb-3 overflow-x-auto rounded-xl border border-stone-200 bg-white/80 last:mb-0">
+      <table className="min-w-full text-left text-sm text-stone-700" {...props}>
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ node: _node, children, ...props }) => (
+    <thead className="bg-stone-100 text-stone-900" {...props}>
+      {children}
+    </thead>
+  ),
+  tbody: ({ node: _node, children, ...props }) => <tbody {...props}>{children}</tbody>,
+  tr: ({ node: _node, children, ...props }) => (
+    <tr className="border-b border-stone-100 last:border-none" {...props}>
+      {children}
+    </tr>
+  ),
+  th: ({ node: _node, children, ...props }) => (
+    <th className="px-3 py-2 text-left font-semibold" {...props}>
+      {children}
+    </th>
+  ),
+  td: ({ node: _node, children, ...props }) => (
+    <td className="px-3 py-2 align-top" {...props}>
+      {children}
+    </td>
+  ),
+  hr: ({ node: _node, ...props }) => <hr className="my-4 border-stone-200" {...props} />,
 }
 
 type FamilyIdReminderProps = {
@@ -2451,13 +2562,19 @@ function App() {
                                 />
                                 <div
                                   className={clsx(
-                                    'max-w-[80%] text-base leading-relaxed font-light tracking-wide',
+                                    'max-w-[80%] text-base leading-relaxed font-light tracking-wide break-words',
                                     msg.role === 'user'
                                       ? 'text-stone-900 text-right'
-                                      : 'text-stone-600',
+                                      : 'text-stone-600 text-left',
                                   )}
                                 >
-                                  {msg.content}
+                                  <ReactMarkdown
+                                    remarkPlugins={[remarkMath, remarkGfm]}
+                                    rehypePlugins={[rehypeKatex]}
+                                    components={markdownComponents}
+                                  >
+                                    {normalizeMathDelimiters(msg.content)}
+                                  </ReactMarkdown>
                                 </div>
                               </div>
                             ))}
