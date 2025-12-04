@@ -14,6 +14,8 @@ from family_companion.schemas import (
     ChatResponse,
     FamilyDetailResponse,
     FamilyResponse,
+    ImportantEventsRequest,
+    ImportantEventsResponse,
     InviteInfoResponse,
     InviteLinkResponse,
     InviteMemberRequest,
@@ -22,6 +24,7 @@ from family_companion.schemas import (
     MessageRequest,
     ProfileResponse,
     SignupRequest,
+    TimelineEventSchema,
 )
 from family_companion.service import FamilyService
 from family_companion.state import FamilyStateStore
@@ -301,3 +304,31 @@ def memory(
         raise HTTPException(status_code=404, detail=str(exc))
     except PermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc))
+
+
+@app.put(
+    "/families/{family_id}/important-events",
+    response_model=ImportantEventsResponse,
+)
+def update_important_events(
+    family_id: str,
+    req: ImportantEventsRequest,
+    user: UserAccount = Depends(current_user),
+) -> ImportantEventsResponse:
+    if user.family_id != family_id:
+        raise HTTPException(
+            status_code=403, detail="You can only modify your own family's events."
+        )
+    try:
+        events = service.save_important_events(
+            family_id,
+            user,
+            [event.dict() for event in req.events],
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    return ImportantEventsResponse(
+        events=[TimelineEventSchema(**event) for event in events]
+    )

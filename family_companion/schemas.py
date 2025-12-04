@@ -111,3 +111,21 @@ class AcceptInviteRequest(BaseModel):
 class ProfileResponse(BaseModel):
     user: MemberResponse
     family: FamilyDetailResponse
+
+
+class TimelineEventSchema(BaseModel):
+    content: str = Field(..., description="重要事件内容")
+    date: Optional[str] = Field(None, description="事件日期或时间段")
+    image_data: Optional[str] = Field(None, description="可选的base64图片数据")
+
+
+class ImportantEventsRequest(BaseModel):
+    events: List[TimelineEventSchema] = Field(
+        default_factory=list, description="重要事件列表"
+    )
+
+
+class ImportantEventsResponse(BaseModel):
+    events: List[TimelineEventSchema] = Field(
+        default_factory=list, description="已保存的重要事件"
+    )

@@ -10,8 +10,10 @@ import type {
   LoginPayload,
   MemorySnapshot,
   MessagePayload,
+  ImportantEventsResponse,
   ProfileResponse,
   SignupPayload,
+  TimelineEvent,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://pj-potemkin.zzw.moe'
@@ -71,6 +73,19 @@ export const api = {
       {
         method: 'POST',
         body: JSON.stringify(payload),
+      },
+      token,
+    ),
+  updateImportantEvents: (
+    familyId: string,
+    events: TimelineEvent[],
+    token: string,
+  ): Promise<ImportantEventsResponse> =>
+    request(
+      `/families/${familyId}/important-events`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ events }),
       },
       token,
     ),

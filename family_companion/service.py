@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from family_companion.agent import FamilyAgent
 from family_companion.auth import UserAccount
@@ -118,7 +118,12 @@ class FamilyService:
         if user.family_id != family_id:
             raise PermissionError("User cannot access another family's memory.")
         self.get_family(family_id)
-        return self.memory.snapshot(family_id, user_id=user.user_id)
+        snapshot = self.memory.snapshot(family_id, user_id=user.user_id)
+        family_meta = self.state.get_family(family_id) or {}
+        stored_events = self.list_important_events(family_id)
+        if "important_events" in family_meta:
+            snapshot["important_events"] = stored_events
+        return snapshot
 
     def family_detail(self, family_id: str, user: UserAccount) -> Dict[str, object]:
         if user.family_id != family_id:
@@ -143,3 +148,52 @@ class FamilyService:
                 for m in members.values()
             ],
         }
+
+    def list_important_events(self, family_id: str) -> List[Dict[str, str]]:
+        family_meta = self.state.get_family(family_id) or {}
+        events = family_meta.get("important_events") or []
+        normalized: List[Dict[str, str]] = []
+        for event in events:
+            content = str(event.get("content") if isinstance(event, dict) else event).strip()
+            date = ""
+            image_data = ""
+            if isinstance(event, dict):
+                date = str(event.get("date") or "").strip()
+                image_data = str(event.get("image_data") or "").strip()
+            if not content:
+                continue
+            payload: Dict[str, str] = {"content": content}
+            if date:
+                payload["date"] = date
+            if image_data:
+                payload["image_data"] = image_data
+            normalized.append(payload)
+        return normalized
+
+    def save_important_events(
+        self,
+        family_id: str,
+        user: UserAccount,
+        events: List[Dict[str, str]],
+    ) -> List[Dict[str, str]]:
+        if user.family_id != family_id:
+            raise PermissionError("User cannot modify another family's events.")
+        self.get_family(family_id)
+        normalized: List[Dict[str, str]] = []
+        for event in events:
+            content = str(event.get("content") if isinstance(event, dict) else event).strip()
+            if not content:
+                continue
+            date = ""
+            image_data = ""
+            if isinstance(event, dict):
+                date = str(event.get("date") or "").strip()
+                image_data = str(event.get("image_data") or "").strip()
+            payload: Dict[str, str] = {"content": content}
+            if date:
+                payload["date"] = date
+            if image_data:
+                payload["image_data"] = image_data
+            normalized.append(payload)
+        self.state.upsert_family(family_id, {"important_events": normalized})
+        return normalized

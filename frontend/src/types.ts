@@ -19,6 +19,7 @@ export type Family = {
 export type TimelineEvent = {
   content: string
   date?: string
+  image_data?: string | null
 }
 
 export type MemorySnapshot = {
@@ -120,4 +121,8 @@ export type ChatMessage = {
   content: string
   timestamp: string
   isStreaming?: boolean
+}
+
+export type ImportantEventsResponse = {
+  events: TimelineEvent[]
 }

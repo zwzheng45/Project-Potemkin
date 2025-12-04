@@ -37,10 +37,24 @@ import type {
   InviteLinkResponse,
   InviteMemberPayload,
   LoginPayload,
+  ImportantEventsResponse,
   TimelineEvent,
   ProfileResponse,
   SignupPayload,
 } from './types'
+
+type TimelineDraft = TimelineEvent & {
+  draftId: string
+  sourceIndex?: number
+}
+
+const generateDraftId = () => {
+  const globalCrypto = typeof globalThis !== 'undefined' ? (globalThis.crypto as Crypto | undefined) : undefined
+  if (globalCrypto?.randomUUID) {
+    return globalCrypto.randomUUID()
+  }
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
 
 type Copy = {
   languageName: string
@@ -131,6 +145,14 @@ type Copy = {
   shortTermHeading: string
   longTermHeading: string
   importantEventsHeading: string
+  importantEventsEditTitle: string
+  importantEventsContentLabel: string
+  importantEventsDateLabel: string
+  importantEventsAddButton: string
+  importantEventsImageLabel: string
+  importantEventsImageUpload: string
+  importantEventsImageRemove: string
+  importantEventsContentRequired: string
   privateHeading: string
   publicHeading: string
   profileHeading: string
@@ -155,8 +177,6 @@ type Copy = {
   conversationTabLabel: string
   fileManagementTabLabel: string
 }
-
-type MemoryEntry = string | TimelineEvent
 
 type StreamingState = {
   id: string
@@ -257,6 +277,14 @@ const translations = {
     shortTermHeading: 'Short-term Memory',
     longTermHeading: 'Long-term Memory',
     importantEventsHeading: 'Important Events',
+    importantEventsEditTitle: 'Edit Timeline',
+    importantEventsContentLabel: 'Event details',
+    importantEventsDateLabel: 'Event date',
+    importantEventsAddButton: 'Add event',
+    importantEventsImageLabel: 'Event photo',
+    importantEventsImageUpload: 'Upload image',
+    importantEventsImageRemove: 'Remove image',
+    importantEventsContentRequired: 'Please describe the event before saving.',
     privateHeading: 'Private (You Only)',
     publicHeading: 'Public (3rd-Party OK)',
     profileHeading: 'Family Profile',
@@ -370,6 +398,14 @@ const translations = {
     shortTermHeading: '短期记忆',
     longTermHeading: '长期记忆',
     importantEventsHeading: '重要事件',
+    importantEventsEditTitle: '编辑时间轴',
+    importantEventsContentLabel: '事件内容',
+    importantEventsDateLabel: '事件日期',
+    importantEventsAddButton: '新增事件',
+    importantEventsImageLabel: '事件图片',
+    importantEventsImageUpload: '上传图片',
+    importantEventsImageRemove: '移除图片',
+    importantEventsContentRequired: '请先填写事件内容。',
     privateHeading: '私密记忆',
     publicHeading: '公开记忆',
     profileHeading: '家庭画像',
@@ -484,6 +520,14 @@ const translations = {
     shortTermHeading: 'Mémoire court terme',
     longTermHeading: 'Mémoire long terme',
     importantEventsHeading: 'Événements importants',
+    importantEventsEditTitle: 'Modifier la frise',
+    importantEventsContentLabel: "Détail de l'événement",
+    importantEventsDateLabel: "Date de l'événement",
+    importantEventsAddButton: 'Ajouter un événement',
+    importantEventsImageLabel: "Photo de l'événement",
+    importantEventsImageUpload: 'Téléverser une image',
+    importantEventsImageRemove: "Supprimer l'image",
+    importantEventsContentRequired: "Veuillez décrire l'événement avant d'enregistrer.",
     privateHeading: 'Mémoire privée',
     publicHeading: 'Mémoire publique',
     profileHeading: 'Profil familial',
@@ -598,6 +642,14 @@ const translations = {
     shortTermHeading: 'Kurzzeitgedächtnis',
     longTermHeading: 'Langzeitgedächtnis',
     importantEventsHeading: 'Wichtige Ereignisse',
+    importantEventsEditTitle: 'Zeitstrahl bearbeiten',
+    importantEventsContentLabel: 'Ereignisdetails',
+    importantEventsDateLabel: 'Ereignisdatum',
+    importantEventsAddButton: 'Ereignis hinzufügen',
+    importantEventsImageLabel: 'Ereignisbild',
+    importantEventsImageUpload: 'Bild hochladen',
+    importantEventsImageRemove: 'Bild entfernen',
+    importantEventsContentRequired: 'Bitte beschreibe das Ereignis vor dem Speichern.',
     privateHeading: 'Private Erinnerungen',
     publicHeading: 'Öffentliche Erinnerungen',
     profileHeading: 'Familienprofil',
@@ -711,6 +763,14 @@ const translations = {
     shortTermHeading: '短期メモリー',
     longTermHeading: '長期メモリー',
     importantEventsHeading: '重要イベント',
+    importantEventsEditTitle: 'タイムラインを編集',
+    importantEventsContentLabel: 'イベント内容',
+    importantEventsDateLabel: '日付',
+    importantEventsAddButton: 'イベントを追加',
+    importantEventsImageLabel: 'イベント画像',
+    importantEventsImageUpload: '画像をアップロード',
+    importantEventsImageRemove: '画像を削除',
+    importantEventsContentRequired: '保存する前にイベント内容を入力してください。',
     privateHeading: 'プライベート記憶',
     publicHeading: '公開記憶',
     profileHeading: '家族プロフィール',
@@ -1179,6 +1239,7 @@ const ProfileEditModal = ({
   )
 }
 
+
 function App() {
   const queryClient = useQueryClient()
   const [authToken, setAuthToken] = useState<string | null>(() => {
@@ -1227,11 +1288,14 @@ function App() {
   const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null)
   const [inviteFetchError, setInviteFetchError] = useState<string | null>(null)
   const [sessionUser, setSessionUser] = useState<FamilyMember | null>(null)
+  const [eventDrafts, setEventDrafts] = useState<TimelineDraft[]>([])
+  const [eventError, setEventError] = useState<string | null>(null)
+  const [activeEventIndex, setActiveEventIndex] = useState<number | null>(null)
+  const [hasEventChanges, setHasEventChanges] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
   const [chatLogs, setChatLogs] = useState<Record<string, ChatMessage[]>>({})
   const [streamingMessage, setStreamingMessage] = useState<StreamingState | null>(null)
   const [memoryCache, setMemoryCache] = useState<Record<string, MemorySnapshot>>({})
-  const [contextCache, setContextCache] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [chatError, setChatError] = useState<string | null>(null)
   const [globalError, setGlobalError] = useState<string | null>(null)
@@ -1240,6 +1304,40 @@ function App() {
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
   const [isLandingAtTop, setIsLandingAtTop] = useState(true)
   const chatEndRef = useRef<HTMLDivElement | null>(null)
+
+  const formatDateInput = useCallback((value: string) => {
+    const digitsOnly = value.replace(/\D/g, '').slice(0, 8)
+    if (digitsOnly.length <= 4) return digitsOnly
+    if (digitsOnly.length <= 6) {
+      return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4)}`
+    }
+    return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 6)}-${digitsOnly.slice(6)}`
+  }, [])
+
+  const sanitizeEvents = useCallback((events: Array<TimelineEvent | TimelineDraft>) => {
+    return events
+      .map((event) => {
+        const content = event.content?.trim() ?? ''
+        if (!content) return null
+        const date = event.date?.trim()
+        const imageValue =
+          typeof event.image_data === 'string' ? event.image_data.trim() : event.image_data ?? ''
+        return {
+          content,
+          ...(date ? { date } : {}),
+          ...(imageValue ? { image_data: imageValue } : {}),
+        }
+      })
+      .filter((event): event is TimelineEvent => Boolean(event))
+  }, [])
+
+  const convertToDrafts = useCallback((events: TimelineEvent[]): TimelineDraft[] => {
+    return events.map((event, index) => ({
+      ...event,
+      draftId: generateDraftId(),
+      sourceIndex: index,
+    }))
+  }, [])
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem('fc-profile-overrides', JSON.stringify(profileOverrides))
@@ -1292,40 +1390,6 @@ function App() {
   }, [authToken])
 
   const copy = translations[language]
-  const memorySections: Array<{
-    key: keyof MemorySnapshot
-    label: string
-  }> = [
-    {
-      key: 'user_stm',
-      label: copy.userShortTermHeading,
-    },
-    {
-      key: 'stm',
-      label: copy.shortTermHeading,
-    },
-    {
-      key: 'ltm',
-      label: copy.longTermHeading,
-    },
-    {
-      key: 'important_events',
-      label: copy.importantEventsHeading,
-    },
-    {
-      key: 'private',
-      label: copy.privateHeading,
-    },
-    {
-      key: 'public',
-      label: copy.publicHeading,
-    },
-    {
-      key: 'profile',
-      label: copy.profileHeading,
-    },
-  ]
-
   const applyProfileOverrides = useCallback(
     (member: FamilyMember): FamilyMember => {
       const override = profileOverrides[member.user_id]
@@ -1462,7 +1526,6 @@ function App() {
     if (!authToken) {
       setChatLogs({})
       setMemoryCache({})
-      setContextCache({})
       setSessionUser(null)
       setSelectedFamilyId(null)
       setIsEditingProfile(false)
@@ -1489,7 +1552,6 @@ function App() {
     setGlobalError(null)
     setChatLogs({})
     setMemoryCache({})
-    setContextCache({})
     setLatestInvite(null)
     setCopiedInviteToken(null)
     setInviteToken(null)
@@ -1576,7 +1638,6 @@ function App() {
         cursor: 0,
       })
       setMemoryCache((prev) => ({ ...prev, [resp.family_id]: resp.memory }))
-      setContextCache((prev) => ({ ...prev, [resp.family_id]: resp.context_used }))
       queryClient.setQueryData(['memory', resp.family_id], resp.memory)
     },
     onError: (error: Error) => setChatError(error.message),
@@ -1637,13 +1698,103 @@ function App() {
     onError: (error: Error) => setGlobalError(error.message),
   })
 
+  const updateEventsMutation = useMutation<
+    ImportantEventsResponse,
+    Error,
+    { familyId: string; events: TimelineEvent[] }
+  >({
+    mutationFn: ({ familyId, events }) => api.updateImportantEvents(familyId, events, authToken!),
+    onSuccess: (resp, variables) => {
+      setEventError(null)
+      setActiveEventIndex(null)
+      setEventDrafts(convertToDrafts(resp.events))
+      setHasEventChanges(false)
+      const targetFamilyId = variables.familyId
+      if (targetFamilyId) {
+        setMemoryCache((prev) => ({
+          ...prev,
+          [targetFamilyId]: {
+            ...(prev[targetFamilyId] ?? {}),
+            important_events: resp.events,
+          },
+        }))
+        queryClient.setQueryData<MemorySnapshot>(
+          ['memory', targetFamilyId, authToken],
+          (snapshot) => (snapshot ? { ...snapshot, important_events: resp.events } : snapshot),
+        )
+      }
+    },
+    onError: (error: Error) => setEventError(error.message),
+  })
+
   const activeFamilyId = selectedFamily?.family_id
   const currentChat = activeFamilyId ? chatLogs[activeFamilyId] ?? [] : []
   const currentMemory = useMemo(() => {
     if (!activeFamilyId) return undefined
     return memoryQuery.data ?? memoryCache[activeFamilyId]
   }, [activeFamilyId, memoryCache, memoryQuery.data])
-  const currentContext = activeFamilyId ? contextCache[activeFamilyId] : undefined
+  const timelineEvents = useMemo(() => {
+    const events = currentMemory?.important_events
+    return Array.isArray(events) ? (events as TimelineEvent[]) : []
+  }, [currentMemory?.important_events])
+  useEffect(() => {
+    if (hasEventChanges || updateEventsMutation.isPending) return
+    setEventDrafts(convertToDrafts(timelineEvents))
+    setHasEventChanges(false)
+  }, [timelineEvents, hasEventChanges, updateEventsMutation.isPending, convertToDrafts])
+  const displayEvents = useMemo(() => {
+    const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/
+    const getTimestamp = (value?: string) => {
+      if (!value) return null
+      const trimmed = value.trim()
+      if (!isoDatePattern.test(trimmed)) return null
+      const parsed = Date.parse(trimmed)
+      return Number.isNaN(parsed) ? null : parsed
+    }
+    return eventDrafts
+      .map((event, index) => ({ event, index }))
+      .sort((a, b) => {
+        const tsA = getTimestamp(a.event.date)
+        const tsB = getTimestamp(b.event.date)
+        if (tsA !== null && tsB !== null) {
+          return tsB - tsA
+        }
+        if (tsA !== null) return -1
+        if (tsB !== null) return 1
+        return a.index - b.index
+      })
+  }, [eventDrafts])
+  const computeHasEventChanges = useCallback(
+    (drafts: TimelineDraft[]) => {
+      const normalizedDrafts = sanitizeEvents(drafts)
+      const normalizedBaseline = sanitizeEvents(timelineEvents)
+      if (normalizedDrafts.length !== normalizedBaseline.length) return true
+      for (let i = 0; i < normalizedDrafts.length; i += 1) {
+        const draft = normalizedDrafts[i]
+        const baseline = normalizedBaseline[i]
+        if (!baseline) return true
+        if ((draft.content || '').trim() !== (baseline.content || '').trim()) return true
+        if ((draft.date || '').trim() !== (baseline.date || '').trim()) return true
+        if ((draft.image_data || '') !== (baseline.image_data || '')) return true
+      }
+      return false
+    },
+    [timelineEvents, sanitizeEvents],
+  )
+  const updateEventDrafts = useCallback(
+    (
+      updater: (prev: TimelineDraft[]) => TimelineDraft[],
+      after?: (next: TimelineDraft[]) => void,
+    ) => {
+      setEventDrafts((prev) => {
+        const next = updater(prev)
+        setHasEventChanges(computeHasEventChanges(next))
+        if (after) after(next)
+        return next
+      })
+    },
+    [computeHasEventChanges],
+  )
   useEffect(() => {
     if (dashboardView !== 'chat') return
     chatEndRef.current?.scrollIntoView({
@@ -1884,6 +2035,116 @@ function App() {
     })
   }
 
+  const handleSelectEvent = (index: number) => {
+    setEventError(null)
+    setActiveEventIndex((current) => (current === index ? null : index))
+  }
+
+  const handleAddEvent = () => {
+    setEventError(null)
+    updateEventDrafts((prev) => [
+      {
+        content: '',
+        date: '',
+        image_data: '',
+        draftId: generateDraftId(),
+        sourceIndex: undefined,
+      },
+      ...prev,
+    ])
+    setActiveEventIndex(0)
+  }
+
+  const handleRemoveEvent = (index: number) => {
+    setEventError(null)
+    updateEventDrafts((prev) => prev.filter((_, idx) => idx !== index))
+    setActiveEventIndex((current) => {
+      if (current === null) return current
+      if (current === index) return null
+      if (current > index) return current - 1
+      return current
+    })
+  }
+
+  const handleEventFieldChange = (index: number, field: keyof TimelineEvent, value: string) => {
+    setEventError(null)
+    updateEventDrafts((prev) =>
+      prev.map((event, idx) => {
+        if (idx !== index) return event
+        if (field === 'date') {
+          return { ...event, date: formatDateInput(value) }
+        }
+        return { ...event, [field]: value }
+      }),
+    )
+  }
+
+  const handleEventImageUpload = (index: number, file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      if (!result) return
+      updateEventDrafts(
+        (prev) => prev.map((event, idx) => (idx === index ? { ...event, image_data: result } : event)),
+        (next) => {
+          const target = next[index]
+          if (!target || !target.content?.trim()) return
+          if (!activeFamilyId || !authToken || updateEventsMutation.isPending) return
+          const sanitized = sanitizeEvents(next)
+          if (!sanitized.length) return
+          updateEventsMutation.mutate({ familyId: activeFamilyId, events: sanitized })
+        },
+      )
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleEventImageRemove = (index: number) => {
+    updateEventDrafts(
+      (prev) => prev.map((event, idx) => (idx === index ? { ...event, image_data: undefined } : event)),
+      (next) => {
+        const target = next[index]
+        if (!target || !target.content?.trim()) return
+        if (!activeFamilyId || !authToken || updateEventsMutation.isPending) return
+        const sanitized = sanitizeEvents(next)
+        updateEventsMutation.mutate({ familyId: activeFamilyId, events: sanitized })
+      },
+    )
+  }
+
+  const handleCancelEventEdit = (index: number) => {
+    setEventError(null)
+    updateEventDrafts((prev) => {
+      const target = prev[index]
+      if (!target) return prev
+      if (typeof target.sourceIndex === 'number' && timelineEvents[target.sourceIndex]) {
+        const baseline = timelineEvents[target.sourceIndex]
+        return prev.map((event, idx) =>
+          idx === index
+            ? { ...baseline, draftId: event.draftId, sourceIndex: target.sourceIndex }
+            : event,
+        )
+      }
+      return prev.filter((_, idx) => idx !== index)
+    })
+    setActiveEventIndex(null)
+  }
+
+  const handleSaveEvents = () => {
+    if (!activeFamilyId || !authToken) {
+      setEventError(copy.authRequired)
+      return false
+    }
+    const sanitized = sanitizeEvents(eventDrafts)
+    const hasDraftContent = eventDrafts.some((event) => event.content.trim().length > 0)
+    if (hasDraftContent && !sanitized.length) {
+      setEventError(copy.importantEventsContentRequired)
+      return false
+    }
+    updateEventsMutation.mutate({ familyId: activeFamilyId, events: sanitized })
+    return true
+  }
+
   const handleRefresh = () => {
     if (!activeFamilyId) return
     if (dashboardView === 'chat') {
@@ -1907,12 +2168,15 @@ function App() {
     setFamilyMembers([])
     setChatLogs({})
     setMemoryCache({})
-    setContextCache({})
     setLatestInvite(null)
     setCopiedInviteToken(null)
     setShouldShowIntro(false)
     setView('landing')
     setIsEditingProfile(false)
+    setEventDrafts([])
+    setEventError(null)
+    setActiveEventIndex(null)
+    setHasEventChanges(false)
     setPendingViewAfterReminder(null)
     queryClient.clear()
   }
@@ -2711,70 +2975,210 @@ function App() {
                         <p className="text-stone-500 font-light">{copy.memorySubheading}</p>
                       </div>
 
-                      {/* Context */}
-                      {currentContext && (
-                        <div className="rounded-3xl border border-stone-100 bg-gradient-to-r from-stone-50 to-white px-8 py-8 shadow-sm">
-                          <div className="mb-4 flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-stone-500">
-                            <span className="h-2 w-2 rounded-full bg-stone-400" />
-                            <span>{copy.activeContextLabel}</span>
+                      <div>
+                        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 text-xs uppercase tracking-[0.3em] text-stone-400">
+                            <Bot className="h-4 w-4 text-stone-300" />
+                            <span>{copy.importantEventsHeading}</span>
                           </div>
-                          <p className="text-lg leading-relaxed text-stone-700 font-light italic">
-                            “{currentContext}”
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Snapshots Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {memorySections.map((section) => {
-                          const rawEntries = currentMemory?.[section.key]
-                          const entries: MemoryEntry[] = Array.isArray(rawEntries)
-                            ? (rawEntries as MemoryEntry[])
-                            : []
-                          return (
-                            <div
-                              key={section.key}
-                              className="rounded-3xl border border-stone-200 bg-white/50 px-8 py-8 shadow-sm"
+                          {sessionUser && (
+                            <button
+                              type="button"
+                              onClick={handleAddEvent}
+                              disabled={updateEventsMutation.isPending}
+                              className="flex items-center gap-2 rounded-full border border-stone-200 px-4 py-1.5 text-[10px] uppercase tracking-[0.3em] text-stone-500 transition-colors hover:border-stone-900 hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <div className="flex items-center gap-3 mb-6 border-b border-stone-100 pb-4">
-                                <p className="text-xs uppercase tracking-[0.3em] text-stone-500">
-                                  {section.label}
-                                </p>
-                              </div>
-                              <div className="space-y-4">
-                                {entries.length ? (
-                                  entries.map((item: MemoryEntry, index: number) => {
-                                    const contentText =
-                                      typeof item === 'string'
-                                        ? item
-                                        : item.date
-                                          ? `${item.date} · ${item.content}`
-                                          : item.content
-                                    return (
-                                      <div
-                                        key={`${section.key}-${index}`}
-                                        className="rounded-xl border border-stone-100 bg-white px-6 py-5 shadow-sm"
-                                      >
-                                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-3">
-                                          <span className="font-medium text-stone-400">#{index + 1}</span>
-                                          <span className="h-px w-6 bg-stone-100" />
-                                          <span>{section.label}</span>
+                              <Plus size={12} />
+                              <span>{copy.importantEventsAddButton}</span>
+                            </button>
+                          )}
+                        </div>
+                        {eventError && (
+                          <p className="mb-4 text-xs font-light tracking-wide text-rose-500">{eventError}</p>
+                        )}
+                        <div className="relative pl-8 sm:pl-0">
+                          <div
+                            className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-stone-200 via-stone-300 to-stone-100"
+                            aria-hidden
+                          />
+                          {displayEvents.length ? (
+                            <div className="space-y-12 sm:space-y-16">
+                              {displayEvents.map(({ event, index }, renderIndex) => {
+                                const isLeft = renderIndex % 2 === 0
+                                const isActive = activeEventIndex === index
+                                return (
+                                  <div key={event.draftId} className="relative pt-2 sm:pt-0">
+                                    <div
+                                      role={sessionUser ? 'button' : undefined}
+                                      tabIndex={sessionUser ? 0 : undefined}
+                                      onClick={() => {
+                                        if (!sessionUser || isActive) return
+                                        handleSelectEvent(index)
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (!sessionUser || isActive) return
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault()
+                                          handleSelectEvent(index)
+                                        }
+                                      }}
+                                      className={clsx(
+                                        'relative w-full rounded-2xl border bg-white/80 px-6 py-5 shadow-sm backdrop-blur-sm transition-all sm:max-w-md',
+                                        isLeft
+                                          ? 'sm:mr-auto sm:pr-12 sm:text-right'
+                                          : 'sm:ml-auto sm:pl-12 sm:text-left',
+                                        isActive
+                                          ? 'border-stone-900 ring-2 ring-stone-900/10'
+                                          : 'border-stone-200 hover:border-stone-400',
+                                        sessionUser && !isActive ? 'cursor-pointer' : 'cursor-default',
+                                      )}
+                                    >
+                                      {isActive && sessionUser ? (
+                                        <div className="space-y-4 text-left">
+                                          <div>
+                                            <label className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
+                                              {copy.importantEventsContentLabel}
+                                            </label>
+                                            <textarea
+                                              value={event.content}
+                                              onChange={(e) =>
+                                                handleEventFieldChange(index, 'content', e.target.value)
+                                              }
+                                              className="mt-2 w-full rounded-xl border border-stone-200 bg-white/70 p-3 text-sm text-stone-900 focus:border-stone-900 focus:outline-none"
+                                              rows={3}
+                                            />
+                                          </div>
+                                          <div>
+                                            <label className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
+                                              {copy.importantEventsDateLabel}
+                                            </label>
+                                            <input
+                                              type="text"
+                                              value={event.date ?? ''}
+                                              onChange={(e) =>
+                                                handleEventFieldChange(index, 'date', e.target.value)
+                                              }
+                                              className="mt-2 w-full rounded-xl border border-stone-200 bg-white/70 p-3 text-sm text-stone-900 focus:border-stone-900 focus:outline-none"
+                                              placeholder="YYYY-MM-DD"
+                                            />
+                                          </div>
+                                          <div className="space-y-2">
+                                            <label className="text-[10px] uppercase tracking-[0.3em] text-stone-400">
+                                              {copy.importantEventsImageLabel}
+                                            </label>
+                                            {event.image_data ? (
+                                              <div className="overflow-hidden rounded-xl border border-stone-200">
+                                                <img
+                                                  src={event.image_data}
+                                                  alt={event.content || copy.importantEventsImageLabel}
+                                                  className="h-48 w-full object-cover"
+                                                />
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleEventImageRemove(index)}
+                                                  className="flex w-full items-center justify-center gap-2 border-t border-stone-200 bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-500 hover:text-rose-500"
+                                                >
+                                                  <Trash2 size={14} />
+                                                  <span>{copy.importantEventsImageRemove}</span>
+                                                </button>
+                                              </div>
+                                            ) : null}
+                                            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-full border border-dashed border-stone-300 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-400 transition-colors hover:border-stone-500 hover:text-stone-700">
+                                              <ImagePlus size={14} />
+                                              <span>{copy.importantEventsImageUpload}</span>
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="sr-only"
+                                                onChange={(e) => {
+                                                  const file = e.target.files?.[0]
+                                                  if (file) {
+                                                    handleEventImageUpload(index, file)
+                                                  }
+                                                  e.currentTarget.value = ''
+                                                }}
+                                              />
+                                            </label>
+                                          </div>
+                                          <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] uppercase tracking-[0.3em]">
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveEvent(index)}
+                                              className="flex items-center gap-2 text-rose-500"
+                                            >
+                                              <Trash2 size={12} />
+                                              <span>{copy.removeLabel}</span>
+                                            </button>
+                                            <div className="flex items-center gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleCancelEventEdit(index)}
+                                                className="text-stone-400 hover:text-stone-900"
+                                              >
+                                                {copy.cancelButton}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  if (handleSaveEvents()) {
+                                                    setActiveEventIndex(null)
+                                                  }
+                                                }}
+                                                disabled={updateEventsMutation.isPending}
+                                                className="rounded-full border border-stone-900 bg-stone-900 px-4 py-1.5 text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-200"
+                                              >
+                                                {updateEventsMutation.isPending ? copy.savingButton : copy.saveButton}
+                                              </button>
+                                            </div>
+                                          </div>
                                         </div>
-                                      <p className="text-sm leading-relaxed text-stone-700 whitespace-pre-wrap font-mono text-xs">
-                                        {contentText}
-                                      </p>
+                                      ) : (
+                                        <>
+                                          {event.date ? (
+                                            <p className="mb-2 text-[10px] uppercase tracking-[0.3em] text-stone-400">
+                                              {event.date}
+                                            </p>
+                                          ) : null}
+                                          <p className="text-base leading-relaxed text-stone-700 whitespace-pre-line">
+                                            {event.content}
+                                          </p>
+                                          {event.image_data ? (
+                                            <div className="mt-4 overflow-hidden rounded-xl border border-stone-100">
+                                              <img
+                                                src={event.image_data}
+                                                alt={event.content || copy.importantEventsImageLabel}
+                                                className="h-48 w-full object-cover"
+                                              />
+                                            </div>
+                                          ) : null}
+                                          {sessionUser ? (
+                                            <p className="mt-3 text-[10px] uppercase tracking-[0.3em] text-stone-300">
+                                              {copy.importantEventsEditTitle}
+                                            </p>
+                                          ) : null}
+                                        </>
+                                      )}
+                                      <span
+                                        className={clsx(
+                                          'hidden sm:block absolute top-1/2 h-px w-10 bg-stone-200',
+                                          isLeft ? '-right-10' : '-left-10',
+                                        )}
+                                        aria-hidden
+                                      />
                                     </div>
-                                    )
-                                  })
-                                ) : (
-                                  <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-6 py-8 text-center text-xs uppercase tracking-[0.3em] text-stone-300">
-                                    {copy.emptyMemoryLabel}
+                                    <div className="absolute left-4 sm:left-1/2 top-6 -translate-x-1/2">
+                                      <span className="block h-4 w-4 rounded-full border-4 border-white bg-stone-900 shadow" />
+                                    </div>
                                   </div>
-                                )}
-                              </div>
+                                )
+                              })}
                             </div>
-                          )
-                        })}
+                          ) : (
+                            <div className="rounded-3xl border border-dashed border-stone-200 bg-white/40 px-6 py-12 text-center text-xs uppercase tracking-[0.3em] text-stone-300">
+                              {copy.emptyMemoryLabel}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
