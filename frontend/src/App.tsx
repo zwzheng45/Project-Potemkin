@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ComponentPropsWithoutRef, FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import clsx from 'clsx'
@@ -157,6 +157,13 @@ type Copy = {
 }
 
 type MemoryEntry = string | TimelineEvent
+
+type StreamingState = {
+  id: string
+  familyId: string
+  fullText: string
+  cursor: number
+}
 
 const translations = {
   en: {
@@ -1222,6 +1229,7 @@ function App() {
   const [sessionUser, setSessionUser] = useState<FamilyMember | null>(null)
   const [chatDraft, setChatDraft] = useState('')
   const [chatLogs, setChatLogs] = useState<Record<string, ChatMessage[]>>({})
+  const [streamingMessage, setStreamingMessage] = useState<StreamingState | null>(null)
   const [memoryCache, setMemoryCache] = useState<Record<string, MemorySnapshot>>({})
   const [contextCache, setContextCache] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -1231,6 +1239,7 @@ function App() {
   const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
   const [isLandingAtTop, setIsLandingAtTop] = useState(true)
+  const chatEndRef = useRef<HTMLDivElement | null>(null)
   useEffect(() => {
     if (typeof window === 'undefined') return
     window.localStorage.setItem('fc-profile-overrides', JSON.stringify(profileOverrides))
@@ -1546,24 +1555,69 @@ function App() {
     },
     onSuccess: (resp) => {
       setChatError(null)
+      const streamingId = crypto.randomUUID()
       setChatLogs((prev) => ({
         ...prev,
         [resp.family_id]: [
           ...(prev[resp.family_id] ?? []),
           {
-            id: crypto.randomUUID(),
+            id: streamingId,
             role: 'assistant',
-            content: resp.reply,
+            content: '',
             timestamp: new Date().toISOString(),
+            isStreaming: true,
           },
         ],
       }))
+      setStreamingMessage({
+        id: streamingId,
+        familyId: resp.family_id,
+        fullText: resp.reply,
+        cursor: 0,
+      })
       setMemoryCache((prev) => ({ ...prev, [resp.family_id]: resp.memory }))
       setContextCache((prev) => ({ ...prev, [resp.family_id]: resp.context_used }))
       queryClient.setQueryData(['memory', resp.family_id], resp.memory)
     },
     onError: (error: Error) => setChatError(error.message),
   })
+
+  useEffect(() => {
+    if (!streamingMessage) return
+    const chunkSize = Math.max(1, Math.floor(streamingMessage.fullText.length / 120))
+    const interval = window.setInterval(() => {
+      setStreamingMessage((prev) => {
+        if (!prev) return prev
+        const nextCursor = Math.min(prev.fullText.length, prev.cursor + chunkSize)
+        setChatLogs((logs) => {
+          const target = logs[prev.familyId] ?? []
+          return {
+            ...logs,
+            [prev.familyId]: target.map((msg) =>
+              msg.id === prev.id
+                ? { ...msg, content: prev.fullText.slice(0, nextCursor) }
+                : msg,
+            ),
+          }
+        })
+        if (nextCursor >= prev.fullText.length) {
+          window.clearInterval(interval)
+          setChatLogs((logs) => {
+            const target = logs[prev.familyId] ?? []
+            return {
+              ...logs,
+              [prev.familyId]: target.map((msg) =>
+                msg.id === prev.id ? { ...msg, isStreaming: false } : msg,
+              ),
+            }
+          })
+          return null
+        }
+        return { ...prev, cursor: nextCursor }
+      })
+    }, 30)
+    return () => window.clearInterval(interval)
+  }, [streamingMessage?.id])
 
   const inviteMemberMutation = useMutation<
     InviteLinkResponse,
@@ -1590,6 +1644,13 @@ function App() {
     return memoryQuery.data ?? memoryCache[activeFamilyId]
   }, [activeFamilyId, memoryCache, memoryQuery.data])
   const currentContext = activeFamilyId ? contextCache[activeFamilyId] : undefined
+  useEffect(() => {
+    if (dashboardView !== 'chat') return
+    chatEndRef.current?.scrollIntoView({
+      behavior: streamingMessage ? 'smooth' : 'auto',
+      block: 'end',
+    })
+  }, [currentChat, streamingMessage?.cursor, dashboardView])
   const healthError = (healthQuery.error as Error | null) ?? null
   const apiStatusIndicator = useMemo(() => {
     if (healthQuery.data?.status === 'ok') {
@@ -2443,7 +2504,7 @@ function App() {
             >
               <header className="border-b border-stone-200 bg-surface-50 px-6 py-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 sm:gap-6">
+                  <div className="flex flex-1 flex-wrap items-center gap-4 sm:gap-6">
                     <button
                       onClick={() => setView('identity')}
                       className="text-stone-400 hover:text-stone-900 transition-colors"
@@ -2458,9 +2519,7 @@ function App() {
                         ID: {selectedFamily?.family_id} {copy.dashIdSuffix}
                       </p>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
                     {sessionUser && (
                       <motion.button
                         type="button"
@@ -2483,6 +2542,9 @@ function App() {
                         <UserPen className="h-4 w-4 text-stone-300" />
                       </motion.button>
                     )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
                     <LanguageSelector
                       language={language}
                       label={copy.languageSelectorLabel}
@@ -2598,6 +2660,7 @@ function App() {
                                 </div>
                               </div>
                             ))}
+                            <div ref={chatEndRef} />
                           </div>
                         )}
                       </div>

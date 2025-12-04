@@ -119,4 +119,5 @@ export type ChatMessage = {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+  isStreaming?: boolean
 }
