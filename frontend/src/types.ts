@@ -20,6 +20,8 @@ export type TimelineEvent = {
   content: string
   date?: string
   image_data?: string | null
+  user_id?: string
+  user_name?: string
 }
 
 export type MemorySnapshot = {
@@ -102,6 +104,17 @@ export type AcceptInvitePayload = {
 
 export type MessagePayload = {
   content: string
+}
+
+export type UpdateProfilePayload = {
+  name?: string
+  bio?: string | null
+  avatar_url?: string | null
+}
+
+export type AvatarUploadResponse = {
+  url: string
+  size: number
 }
 
 export type AuthResponse = {

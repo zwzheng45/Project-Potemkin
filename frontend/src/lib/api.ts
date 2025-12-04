@@ -14,6 +14,8 @@ import type {
   ProfileResponse,
   SignupPayload,
   TimelineEvent,
+  UpdateProfilePayload,
+  AvatarUploadResponse,
 } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://pj-potemkin.zzw.moe'
@@ -63,6 +65,24 @@ export const api = {
     ),
   fetchMemory: (familyId: string, token: string): Promise<MemorySnapshot> =>
     request(`/families/${familyId}/memory`, undefined, token),
+  updateProfile: (payload: UpdateProfilePayload, token: string): Promise<ProfileResponse> =>
+    request('/me', { method: 'PUT', body: JSON.stringify(payload) }, token),
+  uploadAvatar: async (file: File, token: string): Promise<AvatarUploadResponse> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await fetch(`${API_BASE}/me/avatar`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    })
+    const text = await response.text()
+    const parsed = text ? JSON.parse(text) : undefined
+    if (!response.ok) {
+      const detail = parsed?.detail ?? parsed?.message ?? text
+      throw new Error(detail || 'Failed to upload avatar')
+    }
+    return parsed as AvatarUploadResponse
+  },
   inviteMember: (
     familyId: string,
     payload: InviteMemberPayload,

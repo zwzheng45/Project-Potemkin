@@ -56,6 +56,53 @@ const generateDraftId = () => {
   return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+const MAX_AVATAR_BYTES = 200 * 1024
+
+const readFileAsDataUrl = (file: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.readAsDataURL(file)
+  })
+
+const compressImageToLimit = async (file: File, maxBytes = MAX_AVATAR_BYTES): Promise<File> => {
+  if (file.size <= maxBytes) {
+    return file
+  }
+  const sourceUrl = await readFileAsDataUrl(file)
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = sourceUrl
+  })
+
+  const canvas = document.createElement('canvas')
+  const maxSide = 640
+  const ratio = Math.min(1, maxSide / Math.max(image.width, image.height || 1))
+  canvas.width = Math.max(1, Math.round(image.width * ratio))
+  canvas.height = Math.max(1, Math.round(image.height * ratio))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    throw new Error('Image compression is not supported in this browser')
+  }
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+
+  let quality = 0.92
+  let blob: Blob | null = await new Promise((resolve) =>
+    canvas.toBlob(resolve, 'image/webp', quality),
+  )
+  while (blob && blob.size > maxBytes && quality > 0.42) {
+    quality -= 0.1
+    blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', quality))
+  }
+  if (!blob || blob.size > maxBytes) {
+    throw new Error('Avatar must be under 200KB. Try a smaller image.')
+  }
+  return new File([blob], `${file.name.split('.')[0] || 'avatar'}.webp`, { type: 'image/webp' })
+}
+
 type Copy = {
   languageName: string
   languageSelectorLabel: string
@@ -294,8 +341,8 @@ const translations = {
   profileNameRequired: 'Please enter your display name',
   profileBioLabel: 'Bio / tagline',
   profileBioPlaceholder: 'Add a short line about yourself...',
-  profileAvatarLabel: 'Avatar',
-  profileAvatarHint: 'Square images look best. We automatically apply a soft rounded rectangle mask.',
+    profileAvatarLabel: 'Avatar',
+    profileAvatarHint: 'Square images look best. We auto-compress to 200KB before uploading to the cloud.',
   profileAvatarUpload: 'Upload image',
   profileAvatarRemove: 'Remove',
     userShortTermHeading: 'Your Recent Memory',
@@ -416,7 +463,7 @@ const translations = {
   profileBioLabel: '个性签名',
   profileBioPlaceholder: '写一句介绍自己的话……',
   profileAvatarLabel: '头像',
-  profileAvatarHint: '建议上传方形图片，我们会自动套用大弧度圆角效果。',
+    profileAvatarHint: '建议上传方形图片，我们会自动压缩到200KB以内并套用大弧度圆角效果。',
   profileAvatarUpload: '上传图片',
   profileAvatarRemove: '移除',
     userShortTermHeading: '你的近期记忆',
@@ -538,7 +585,7 @@ const translations = {
   profileBioLabel: 'Bio / slogan',
   profileBioPlaceholder: 'Ajoutez une courte description…',
   profileAvatarLabel: 'Avatar',
-  profileAvatarHint: "Une image carrée rend mieux. Nous appliquons automatiquement un large arrondi.",
+    profileAvatarHint: "Une image carrée rend mieux. Nous compressons à 200 Ko avant l'envoi.",
   profileAvatarUpload: 'Téléverser',
   profileAvatarRemove: 'Retirer',
     userShortTermHeading: 'Votre mémoire récente',
@@ -660,7 +707,7 @@ const translations = {
   profileBioLabel: 'Bio / Motto',
   profileBioPlaceholder: 'Schreibe einen kurzen Satz über dich…',
   profileAvatarLabel: 'Avatar',
-  profileAvatarHint: 'Quadratische Bilder wirken am besten. Wir legen automatisch eine weich abgerundete Form darüber.',
+    profileAvatarHint: 'Quadratische Bilder wirken am besten. Wir komprimieren automatisch auf 200 KB und laden hoch.',
   profileAvatarUpload: 'Bild hochladen',
   profileAvatarRemove: 'Entfernen',
     userShortTermHeading: 'Deine letzten Gespräche',
@@ -781,7 +828,7 @@ const translations = {
   profileBioLabel: 'ひとこと / 自己紹介',
   profileBioPlaceholder: '自分について一言を書きましょう…',
   profileAvatarLabel: 'アバター',
-  profileAvatarHint: '正方形の画像がおすすめ。大きめの角丸マスクを自動で適用します。',
+    profileAvatarHint: '正方形の画像がおすすめ。クラウドに上げる前に自動で200KB以下に圧縮します。',
   profileAvatarUpload: '画像をアップロード',
   profileAvatarRemove: '削除',
     userShortTermHeading: 'あなたの最近の記憶',
@@ -876,7 +923,10 @@ type ProfileFormState = {
   name: string
   bio: string
   avatarUrl: string
+  avatarFile: File | null
 }
+
+type ProfileFormField = 'name' | 'bio' | 'avatarUrl'
 
 type RoundedAvatarProps = {
   src?: string | null
@@ -1110,10 +1160,10 @@ type ProfileEditModalProps = {
   copy: Copy
   form: ProfileFormState
   onClose: () => void
-  onChange: (field: keyof ProfileFormState, value: string) => void
-  onUpload: (file: File) => void
+  onChange: (field: ProfileFormField, value: string) => void
+  onUpload: (file: File) => void | Promise<void>
   onRemoveAvatar: () => void
-  onSave: () => void
+  onSave: () => void | Promise<void>
   saving: boolean
   error: string | null
 }
@@ -1274,6 +1324,7 @@ function App() {
     name: '',
     bio: '',
     avatarUrl: '',
+    avatarFile: null,
   })
   const [profileError, setProfileError] = useState<string | null>(null)
   const [isProfileSaving, setIsProfileSaving] = useState(false)
@@ -1330,29 +1381,41 @@ function App() {
     return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 6)}-${digitsOnly.slice(6)}`
   }, [])
 
-  const sanitizeEvents = useCallback((events: Array<TimelineEvent | TimelineDraft>) => {
-    const sanitized: TimelineEvent[] = []
-    events.forEach((event) => {
-      const content = event.content?.trim() ?? ''
-      if (!content) return
-      const date = event.date?.trim()
-      const hasDate = Boolean(date)
-      const rawImage =
-        typeof event.image_data === 'string'
-          ? event.image_data.trim()
-          : event.image_data ?? ''
-      const hasImage = Boolean(rawImage)
-      const payload: TimelineEvent = { content }
-      if (hasDate && date) {
-        payload.date = date
-      }
-      if (hasImage && typeof rawImage === 'string' && rawImage.length > 0) {
-        payload.image_data = rawImage
-      }
-      sanitized.push(payload)
-    })
-    return sanitized
-  }, [])
+  const sanitizeEvents = useCallback(
+    (events: Array<TimelineEvent | TimelineDraft>, defaultUser?: FamilyMember | null) => {
+      const sanitized: TimelineEvent[] = []
+      events.forEach((event) => {
+        const content = event.content?.trim() ?? ''
+        if (!content) return
+        const date = event.date?.trim()
+        const hasDate = Boolean(date)
+        const rawImage =
+          typeof event.image_data === 'string'
+            ? event.image_data.trim()
+            : event.image_data ?? ''
+        const hasImage = Boolean(rawImage)
+        const payload: TimelineEvent = { content }
+        if (hasDate && date) {
+          payload.date = date
+        }
+        if (hasImage && typeof rawImage === 'string' && rawImage.length > 0) {
+          payload.image_data = rawImage
+        }
+        const userId = event.user_id || defaultUser?.user_id
+        const userName =
+          event.user_name || (event.user_id ? undefined : defaultUser?.name)
+        if (userId) {
+          payload.user_id = userId
+        }
+        if (userName) {
+          payload.user_name = userName
+        }
+        sanitized.push(payload)
+      })
+      return sanitized
+    },
+    [],
+  )
 
   const convertToDrafts = useCallback((events: TimelineEvent[]): TimelineDraft[] => {
     return events.map((event, index) => ({
@@ -1760,6 +1823,13 @@ function App() {
     const events = currentMemory?.important_events
     return Array.isArray(events) ? (events as TimelineEvent[]) : []
   }, [currentMemory?.important_events])
+  const memberMap = useMemo(() => {
+    const map: Record<string, FamilyMember> = {}
+    familyMembers.forEach((member) => {
+      map[member.user_id] = member
+    })
+    return map
+  }, [familyMembers])
   useEffect(() => {
     if (hasEventChanges || updateEventsMutation.isPending) return
     setEventDrafts(convertToDrafts(timelineEvents))
@@ -1792,8 +1862,8 @@ function App() {
   }, [eventDrafts])
   const computeHasEventChanges = useCallback(
     (drafts: TimelineDraft[]) => {
-      const normalizedDrafts = sanitizeEvents(drafts)
-      const normalizedBaseline = sanitizeEvents(timelineEvents)
+      const normalizedDrafts = sanitizeEvents(drafts, sessionUser)
+      const normalizedBaseline = sanitizeEvents(timelineEvents, sessionUser)
       if (normalizedDrafts.length !== normalizedBaseline.length) return true
       for (let i = 0; i < normalizedDrafts.length; i += 1) {
         const draft = normalizedDrafts[i]
@@ -1802,10 +1872,12 @@ function App() {
         if ((draft.content || '').trim() !== (baseline.content || '').trim()) return true
         if ((draft.date || '').trim() !== (baseline.date || '').trim()) return true
         if ((draft.image_data || '') !== (baseline.image_data || '')) return true
+        if ((draft.user_id || '') !== (baseline.user_id || '')) return true
+        if ((draft.user_name || '').trim() !== (baseline.user_name || '').trim()) return true
       }
       return false
     },
-    [timelineEvents, sanitizeEvents],
+    [timelineEvents, sanitizeEvents, sessionUser],
   )
   const updateEventDrafts = useCallback(
     (
@@ -1941,28 +2013,41 @@ function App() {
       name: sessionUser.name ?? '',
       bio: sessionUser.bio ?? '',
       avatarUrl: sessionUser.avatar_url ?? '',
+      avatarFile: null,
     })
     setProfileError(null)
     setIsEditingProfile(true)
   }
 
-  const handleProfileFormChange = (field: keyof ProfileFormState, value: string) => {
-    setProfileForm((prev) => ({ ...prev, [field]: value }))
+  const handleProfileFormChange = (field: ProfileFormField, value: string) => {
+    setProfileForm((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === 'avatarUrl' && !value ? { avatarFile: null } : {}),
+    }))
   }
 
-  const handleAvatarUpload = (file: File) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      handleProfileFormChange('avatarUrl', typeof reader.result === 'string' ? reader.result : '')
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      setProfileError(null)
+      const compressed = await compressImageToLimit(file)
+      const previewUrl = await readFileAsDataUrl(compressed)
+      setProfileForm((prev) => ({
+        ...prev,
+        avatarUrl: previewUrl,
+        avatarFile: compressed,
+      }))
+    } catch (error) {
+      setProfileError((error as Error).message || 'Failed to load image')
+      setProfileForm((prev) => ({ ...prev, avatarFile: null }))
     }
-    reader.onerror = () => {
-      setProfileError('Failed to load image')
-    }
-    reader.readAsDataURL(file)
   }
 
-  const handleProfileSave = () => {
-    if (!sessionUser) return
+  const handleProfileSave = async () => {
+    if (!sessionUser || !authToken) {
+      setProfileError(copy.authRequired)
+      return
+    }
     const trimmedName = profileForm.name.trim()
     if (!trimmedName) {
       setProfileError(copy.profileNameRequired)
@@ -1972,41 +2057,37 @@ function App() {
     setIsProfileSaving(true)
     const trimmedBio = profileForm.bio.trim()
     const trimmedAvatar = profileForm.avatarUrl.trim()
-    const override: ProfileOverride = {
-      name: trimmedName,
-      bio: trimmedBio ? trimmedBio : null,
-      avatar_url: trimmedAvatar ? trimmedAvatar : null,
-    }
-    upsertProfileOverride(sessionUser.user_id, override)
-    const patch: Partial<FamilyMember> = {
-      name: override.name,
-      bio: override.bio ?? null,
-      avatar_url: override.avatar_url ?? null,
-    }
-    setSessionUser((prev) => (prev ? { ...prev, ...patch } : prev))
-    setFamilyMembers((prev) =>
-      prev.map((member) => (member.user_id === sessionUser.user_id ? { ...member, ...patch } : member)),
-    )
-    if (authToken) {
-      queryClient.setQueryData<ProfileResponse>(['profile', authToken], (prev) => {
-        if (!prev) return prev
-        const updatedFamily = {
-          ...prev.family,
-          members: prev.family.members?.map((member) =>
-            member.user_id === sessionUser.user_id ? { ...member, ...patch } : member,
-          ) as FamilyMember[],
-        }
-        const updatedUser =
-          prev.user.user_id === sessionUser.user_id ? { ...prev.user, ...patch } : prev.user
-        return {
-          ...prev,
-          user: updatedUser,
-          family: updatedFamily,
-        }
+    try {
+      let avatarUrlToSave: string | null | undefined = sessionUser.avatar_url ?? null
+      if (profileForm.avatarFile) {
+        const uploadResp = await api.uploadAvatar(profileForm.avatarFile, authToken)
+        avatarUrlToSave = uploadResp.url
+      } else if (!trimmedAvatar) {
+        avatarUrlToSave = null
+      }
+      const updated = await api.updateProfile(
+        {
+          name: trimmedName,
+          bio: trimmedBio ? trimmedBio : null,
+          avatar_url: avatarUrlToSave,
+        },
+        authToken,
+      )
+      upsertProfileOverride(updated.user.user_id, {
+        name: updated.user.name,
+        bio: updated.user.bio ?? null,
+        avatar_url: updated.user.avatar_url ?? null,
       })
+      setSessionUser(applyProfileOverrides(updated.user))
+      setFamilyMembers(applyOverridesToList(updated.family.members ?? []))
+      queryClient.setQueryData<ProfileResponse>(['profile', authToken], updated)
+      queryClient.setQueryData<Family>(['family', updated.family.family_id], updated.family)
+      setIsEditingProfile(false)
+    } catch (error) {
+      setProfileError((error as Error).message || 'Failed to save profile')
+    } finally {
+      setIsProfileSaving(false)
     }
-    setIsProfileSaving(false)
-    setIsEditingProfile(false)
   }
 
   const handleAddMember = () => {
@@ -2073,6 +2154,8 @@ function App() {
         content: '',
         date: '',
         image_data: '',
+        user_id: sessionUser?.user_id,
+        user_name: sessionUser?.name,
         draftId: generateDraftId(),
         sourceIndex: undefined,
       },
@@ -2116,7 +2199,7 @@ function App() {
           const target = next[index]
           if (!target || !target.content?.trim()) return
           if (!activeFamilyId || !authToken || updateEventsMutation.isPending) return
-          const sanitized = sanitizeEvents(next)
+          const sanitized = sanitizeEvents(next, sessionUser)
           if (!sanitized.length) return
           updateEventsMutation.mutate({ familyId: activeFamilyId, events: sanitized })
         },
@@ -2132,7 +2215,7 @@ function App() {
         const target = next[index]
         if (!target || !target.content?.trim()) return
         if (!activeFamilyId || !authToken || updateEventsMutation.isPending) return
-        const sanitized = sanitizeEvents(next)
+        const sanitized = sanitizeEvents(next, sessionUser)
         updateEventsMutation.mutate({ familyId: activeFamilyId, events: sanitized })
       },
     )
@@ -2161,7 +2244,7 @@ function App() {
       setEventError(copy.authRequired)
       return false
     }
-    const sanitized = sanitizeEvents(eventDrafts)
+    const sanitized = sanitizeEvents(eventDrafts, sessionUser)
     const hasDraftContent = eventDrafts.some((event) => event.content.trim().length > 0)
     if (hasDraftContent && !sanitized.length) {
       setEventError(copy.importantEventsContentRequired)
@@ -3041,6 +3124,10 @@ function App() {
                               {displayEvents.map(({ event, index }, renderIndex) => {
                                 const isLeft = renderIndex % 2 === 0
                                 const isActive = activeEventIndex === index
+                                const eventMember = event.user_id ? memberMap[event.user_id] : undefined
+                                const eventAvatarLabel =
+                                  eventMember?.name || event.user_name || copy.chatUserBadge
+                                const eventAvatarSrc = eventMember?.avatar_url ?? undefined
                                 return (
                                   <div key={event.draftId} className="relative pt-2 sm:pt-0">
                                     <div
@@ -3186,6 +3273,16 @@ function App() {
                                               />
                                             </div>
                                           ) : null}
+                                          {eventAvatarLabel ? (
+                                            <div
+                                              className={clsx(
+                                                'mt-3 flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-stone-400',
+                                                isLeft ? 'justify-end' : 'justify-start',
+                                              )}
+                                            >
+                                              <span>{eventAvatarLabel}</span>
+                                            </div>
+                                          ) : null}
                                           {sessionUser ? (
                                             <p className="mt-3 text-[10px] uppercase tracking-[0.3em] text-stone-300">
                                               {copy.importantEventsEditTitle}
@@ -3201,8 +3298,14 @@ function App() {
                                         aria-hidden
                                       />
                                     </div>
-                                    <div className="absolute left-4 sm:left-1/2 top-6 -translate-x-1/2">
-                                      <span className="block h-4 w-4 rounded-full border-4 border-white bg-stone-900 shadow" />
+                                    <div className="absolute left-4 sm:left-1/2 top-6 -translate-x-1/2 flex flex-col items-center gap-2 sm:-translate-y-1/2">
+                                      <RoundedAvatar
+                                        src={eventAvatarSrc}
+                                        label={eventAvatarLabel}
+                                        size="sm"
+                                        className="h-12 w-12 shadow-md ring-2 ring-white"
+                                      />
+                                      <span className="block h-3 w-3 rounded-full border-4 border-white bg-stone-900 shadow" />
                                     </div>
                                   </div>
                                 )

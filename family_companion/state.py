@@ -44,7 +44,7 @@ class FamilyStateStore:
         with open(self.path, "w", encoding="utf-8") as handle:
             json.dump(self._data, handle, ensure_ascii=False, indent=2)
 
-    def upsert_family(self, family_id: str, payload: Dict[str, str]) -> None:
+    def upsert_family(self, family_id: str, payload: Dict[str, object]) -> None:
         existing = self._data["families"].get(family_id, {})
         merged = {**existing, **payload}
         # Preserve members/owner if not supplied in this payload
@@ -55,10 +55,10 @@ class FamilyStateStore:
         self._data["families"][family_id] = merged
         self._persist()
 
-    def get_family(self, family_id: str) -> Optional[Dict[str, str]]:
+    def get_family(self, family_id: str) -> Optional[Dict[str, object]]:
         return self._data["families"].get(family_id)
 
-    def list_families(self) -> Dict[str, Dict[str, str]]:
+    def list_families(self) -> Dict[str, Dict[str, object]]:
         return self._data["families"]
 
     def add_family_member(self, family_id: str, user_id: str) -> None:
@@ -69,23 +69,28 @@ class FamilyStateStore:
         self._data["families"][family_id] = family
         self._persist()
 
-    def upsert_user(self, user_id: str, payload: Dict[str, str]) -> None:
-        self._data["users"][user_id] = payload
+    def upsert_user(self, user_id: str, payload: Dict[str, object]) -> None:
+        existing = self._data["users"].get(user_id, {})
+        merged = {**existing, **payload}
+        # Preserve family_id if the incoming payload omitted it
+        if "family_id" not in merged and "family_id" in existing:
+            merged["family_id"] = existing["family_id"]
+        self._data["users"][user_id] = merged
         self._persist()
 
-    def get_user(self, user_id: str) -> Optional[Dict[str, str]]:
+    def get_user(self, user_id: str) -> Optional[Dict[str, object]]:
         return self._data["users"].get(user_id)
 
-    def find_user_by_email(self, email: str) -> Optional[Tuple[str, Dict[str, str]]]:
+    def find_user_by_email(self, email: str) -> Optional[Tuple[str, Dict[str, object]]]:
         for uid, user in self._data["users"].items():
             if user.get("email", "").lower() == email.lower():
                 return uid, user
         return None
 
-    def list_users(self) -> Dict[str, Dict[str, str]]:
+    def list_users(self) -> Dict[str, Dict[str, object]]:
         return self._data["users"]
 
-    def list_family_members(self, family_id: str) -> Dict[str, Dict[str, str]]:
+    def list_family_members(self, family_id: str) -> Dict[str, Dict[str, object]]:
         return {
             uid: user
             for uid, user in self._data["users"].items()

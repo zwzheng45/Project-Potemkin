@@ -1,10 +1,15 @@
+import io
 import logging
+import secrets
 import time
+from pathlib import Path
 from typing import Dict, List
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from PIL import Image
 
 from family_companion.auth import AuthService, UserAccount
 from family_companion.config import settings
@@ -22,9 +27,11 @@ from family_companion.schemas import (
     LoginRequest,
     MemberResponse,
     MessageRequest,
+    AvatarUploadResponse,
     ProfileResponse,
     SignupRequest,
     TimelineEventSchema,
+    UpdateProfileRequest,
 )
 from family_companion.service import FamilyService
 from family_companion.state import FamilyStateStore
@@ -48,6 +55,12 @@ app = FastAPI(
     description="链上家庭陪伴AI：每个家庭拥有独立的长期记忆与画像。",
     version="0.2.0",
 )
+
+MEDIA_ROOT = Path(settings.media_dir).expanduser()
+AVATAR_DIR = MEDIA_ROOT / "avatars"
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(MEDIA_ROOT)), name="media")
 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
@@ -73,12 +86,53 @@ def _member_from_user(user: UserAccount) -> MemberResponse:
         name=user.name,
         email=user.email,
         role=user.role,
+        bio=user.bio,
+        avatar_url=user.avatar_url,
     )
 
 
 def _invite_url(token: str) -> str:
     frontend_base = settings.frontend_base_url.rstrip("/")
     return f"{frontend_base}/?invite={token}"
+
+
+def _media_base_url(request: Request) -> str:
+    if settings.media_base_url:
+        return settings.media_base_url.rstrip("/")
+    return str(request.base_url).rstrip("/")
+
+
+def _compress_avatar(content: bytes) -> bytes:
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty avatar file")
+    try:
+        image = Image.open(io.BytesIO(content))
+    except Exception as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image file") from exc
+    image = image.convert("RGB")
+    max_side = 768
+    image.thumbnail((max_side, max_side))
+    target_bytes = settings.max_avatar_bytes
+    attempt = image
+    quality = 90
+    for _ in range(12):
+        buffer = io.BytesIO()
+        attempt.save(buffer, format="WEBP", quality=quality, optimize=True)
+        data = buffer.getvalue()
+        if len(data) <= target_bytes:
+            return data
+        if quality > 55:
+            quality -= 10
+            continue
+        new_width = max(256, int(attempt.size[0] * 0.85))
+        new_height = max(256, int(attempt.size[1] * 0.85))
+        if new_width <= 2 or new_height <= 2:
+            break
+        attempt = attempt.resize((new_width, new_height))
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Avatar must be under {target_bytes // 1024}KB after compression. Try a smaller image.",
+    )
 
 
 def current_user(
@@ -211,6 +265,54 @@ def me(user: UserAccount = Depends(current_user)) -> ProfileResponse:
         user=_member_from_user(user),
         family=FamilyDetailResponse(**family),
     )
+
+
+@app.put("/me", response_model=ProfileResponse)
+def update_profile(
+    req: UpdateProfileRequest, user: UserAccount = Depends(current_user)
+) -> ProfileResponse:
+    updates: Dict[str, object] = {}
+    if req.name is not None:
+        name = req.name.strip()
+        if not name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Name cannot be empty"
+            )
+        updates["name"] = name
+    if req.bio is not None:
+        updates["bio"] = req.bio.strip() or None
+    if req.avatar_url is not None:
+        avatar_url = req.avatar_url.strip()
+        updates["avatar_url"] = avatar_url or None
+    try:
+        updated_user = auth.update_user_profile(user.user_id, **updates)
+        family = service.family_detail(updated_user.family_id, updated_user)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ProfileResponse(
+        user=_member_from_user(updated_user),
+        family=FamilyDetailResponse(**family),
+    )
+
+
+@app.post("/me/avatar", response_model=AvatarUploadResponse)
+async def upload_avatar(
+    request: Request,
+    file: UploadFile = File(...),
+    user: UserAccount = Depends(current_user),
+) -> AvatarUploadResponse:
+    if file.content_type and not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Only image uploads are allowed"
+        )
+    content = await file.read()
+    compressed = _compress_avatar(content)
+    filename = f"{user.user_id}_{secrets.token_hex(6)}.webp"
+    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+    with open(AVATAR_DIR / filename, "wb") as handle:
+        handle.write(compressed)
+    url = f"{_media_base_url(request)}/media/avatars/{filename}"
+    return AvatarUploadResponse(url=url, size=len(compressed))
 
 
 @app.get("/families/me", response_model=FamilyDetailResponse)

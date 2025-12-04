@@ -20,6 +20,8 @@ class UserAccount:
     email: str
     name: str
     role: str = "member"
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 @dataclass
@@ -92,6 +94,8 @@ class AuthService:
             email=payload["email"],
             name=payload.get("name", payload["email"]),
             role=payload.get("role", "member"),
+            bio=payload.get("bio"),
+            avatar_url=payload.get("avatar_url"),
         )
 
     def _invite_from_payload(self, token: str, payload: Dict[str, object]) -> Invite:
@@ -133,6 +137,8 @@ class AuthService:
                 "role": role,
                 "salt": salt,
                 "password_hash": password_hash,
+                "bio": None,
+                "avatar_url": None,
             },
         )
         self.state.add_family_member(family_id, user_id)
@@ -228,3 +234,25 @@ class AuthService:
     def list_family_members(self, family_id: str) -> Dict[str, UserAccount]:
         members = self.state.list_family_members(family_id)
         return {uid: self._to_model(uid, user) for uid, user in members.items()}
+
+    def update_user_profile(
+        self,
+        user_id: str,
+        *,
+        name: Optional[str] = None,
+        bio: Optional[str] = None,
+        avatar_url: Optional[str] = None,
+    ) -> UserAccount:
+        current = self.state.get_user(user_id)
+        if not current:
+            raise KeyError("user not found")
+        updates: Dict[str, Optional[str]] = {}
+        if name is not None:
+            updates["name"] = name
+        if bio is not None:
+            updates["bio"] = bio
+        if avatar_url is not None:
+            updates["avatar_url"] = avatar_url
+        self.state.upsert_user(user_id, {**current, **updates})
+        merged = self.state.get_user(user_id) or {**current, **updates}
+        return self._to_model(user_id, merged)

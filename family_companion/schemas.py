@@ -33,6 +33,8 @@ class MemberResponse(BaseModel):
     name: str
     email: str
     role: str = "member"
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 
 class FamilyDetailResponse(FamilyResponse):
@@ -117,6 +119,8 @@ class TimelineEventSchema(BaseModel):
     content: str = Field(..., description="重要事件内容")
     date: Optional[str] = Field(None, description="事件日期或时间段")
     image_data: Optional[str] = Field(None, description="可选的base64图片数据")
+    user_id: Optional[str] = Field(None, description="创建或更新该事件的成员ID")
+    user_name: Optional[str] = Field(None, description="事件关联的成员名称")
 
 
 class ImportantEventsRequest(BaseModel):
@@ -129,3 +133,16 @@ class ImportantEventsResponse(BaseModel):
     events: List[TimelineEventSchema] = Field(
         default_factory=list, description="已保存的重要事件"
     )
+
+
+class UpdateProfileRequest(BaseModel):
+    name: Optional[str] = Field(None, description="成员显示名称")
+    bio: Optional[str] = Field(None, description="成员简介")
+    avatar_url: Optional[str] = Field(
+        None, description="上传后的头像URL，置空则移除头像"
+    )
+
+
+class AvatarUploadResponse(BaseModel):
+    url: str
+    size: int = Field(..., description="最终存储的头像大小（字节）")

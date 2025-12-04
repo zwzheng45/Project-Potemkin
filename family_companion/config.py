@@ -22,6 +22,11 @@ class Settings:
     membase_account: Optional[str] = os.getenv("MEMBASE_ACCOUNT")
     membase_secret_key: Optional[str] = os.getenv("MEMBASE_SECRET_KEY")
     membase_id: Optional[str] = os.getenv("MEMBASE_ID")
+    media_dir: str = os.getenv(
+        "MEDIA_DIR", os.path.expanduser("~/.membase/family_agents/uploads")
+    )
+    media_base_url: Optional[str] = os.getenv("MEDIA_BASE_URL")
+    max_avatar_bytes: int = int(os.getenv("AVATAR_MAX_BYTES", str(200 * 1024)))
 
     def require_openai(self) -> None:
         if not self.openai_api_key:

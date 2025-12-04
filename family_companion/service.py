@@ -103,6 +103,8 @@ class FamilyService:
                 email=payload["email"],
                 name=payload.get("name", payload["email"]),
                 role=payload.get("role", "member"),
+                bio=payload.get("bio"),
+                avatar_url=payload.get("avatar_url"),
             )
         return hydrated
 
@@ -144,29 +146,42 @@ class FamilyService:
                     "name": m.name,
                     "email": m.email,
                     "role": m.role,
+                    "bio": m.bio,
+                    "avatar_url": m.avatar_url,
                 }
                 for m in members.values()
             ],
         }
 
-    def list_important_events(self, family_id: str) -> List[Dict[str, str]]:
+    def list_important_events(self, family_id: str) -> List[Dict[str, object]]:
         family_meta = self.state.get_family(family_id) or {}
         events = family_meta.get("important_events") or []
-        normalized: List[Dict[str, str]] = []
+        normalized: List[Dict[str, object]] = []
         for event in events:
             content = str(event.get("content") if isinstance(event, dict) else event).strip()
             date = ""
             image_data = ""
+            user_id = ""
+            user_name = ""
             if isinstance(event, dict):
                 date = str(event.get("date") or "").strip()
                 image_data = str(event.get("image_data") or "").strip()
+                user_id = str(event.get("user_id") or "").strip()
+                user_name = str(event.get("user_name") or "").strip()
+                if user_id and not user_name:
+                    user_payload = self.state.get_user(user_id) or {}
+                    user_name = str(user_payload.get("name") or "").strip()
             if not content:
                 continue
-            payload: Dict[str, str] = {"content": content}
+            payload: Dict[str, object] = {"content": content}
             if date:
                 payload["date"] = date
             if image_data:
                 payload["image_data"] = image_data
+            if user_id:
+                payload["user_id"] = user_id
+            if user_name:
+                payload["user_name"] = user_name
             normalized.append(payload)
         return normalized
 
@@ -174,26 +189,44 @@ class FamilyService:
         self,
         family_id: str,
         user: UserAccount,
-        events: List[Dict[str, str]],
-    ) -> List[Dict[str, str]]:
+        events: List[Dict[str, object]],
+    ) -> List[Dict[str, object]]:
         if user.family_id != family_id:
             raise PermissionError("User cannot modify another family's events.")
         self.get_family(family_id)
-        normalized: List[Dict[str, str]] = []
+        normalized: List[Dict[str, object]] = []
         for event in events:
             content = str(event.get("content") if isinstance(event, dict) else event).strip()
             if not content:
                 continue
             date = ""
             image_data = ""
+            event_user_id = ""
+            event_user_name = ""
             if isinstance(event, dict):
                 date = str(event.get("date") or "").strip()
                 image_data = str(event.get("image_data") or "").strip()
-            payload: Dict[str, str] = {"content": content}
+                event_user_id = str(event.get("user_id") or "").strip()
+                event_user_name = str(event.get("user_name") or "").strip()
+            payload: Dict[str, object] = {"content": content}
             if date:
                 payload["date"] = date
             if image_data:
                 payload["image_data"] = image_data
+            if event_user_id and not event_user_name:
+                user_payload = self.state.get_user(event_user_id) or {}
+                event_user_name = str(user_payload.get("name") or "").strip()
+            user_id_value = event_user_id or user.user_id
+            resolved_name = event_user_name
+            if user_id_value and not resolved_name:
+                user_payload = self.state.get_user(user_id_value) or {}
+                resolved_name = str(user_payload.get("name") or "").strip()
+            if not resolved_name:
+                resolved_name = user.name
+            if user_id_value:
+                payload["user_id"] = user_id_value
+            if resolved_name:
+                payload["user_name"] = resolved_name
             normalized.append(payload)
         self.state.upsert_family(family_id, {"important_events": normalized})
         return normalized
