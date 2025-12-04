@@ -2443,7 +2443,7 @@ function App() {
             >
               <header className="border-b border-stone-200 bg-surface-50 px-6 py-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 sm:gap-6">
+                  <div className="flex flex-1 flex-wrap items-center gap-4 sm:gap-6">
                     <button
                       onClick={() => setView('identity')}
                       className="text-stone-400 hover:text-stone-900 transition-colors"
@@ -2458,9 +2458,7 @@ function App() {
                         ID: {selectedFamily?.family_id} {copy.dashIdSuffix}
                       </p>
                     </div>
-                  </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
                     {sessionUser && (
                       <motion.button
                         type="button"
@@ -2483,6 +2481,9 @@ function App() {
                         <UserPen className="h-4 w-4 text-stone-300" />
                       </motion.button>
                     )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
                     <LanguageSelector
                       language={language}
                       label={copy.languageSelectorLabel}
