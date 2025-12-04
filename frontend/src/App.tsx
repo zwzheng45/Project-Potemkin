@@ -1315,20 +1315,27 @@ function App() {
   }, [])
 
   const sanitizeEvents = useCallback((events: Array<TimelineEvent | TimelineDraft>) => {
-    return events
-      .map((event) => {
-        const content = event.content?.trim() ?? ''
-        if (!content) return null
-        const date = event.date?.trim()
-        const imageValue =
-          typeof event.image_data === 'string' ? event.image_data.trim() : event.image_data ?? ''
-        return {
-          content,
-          ...(date ? { date } : {}),
-          ...(imageValue ? { image_data: imageValue } : {}),
-        }
-      })
-      .filter((event): event is TimelineEvent => Boolean(event))
+    const sanitized: TimelineEvent[] = []
+    events.forEach((event) => {
+      const content = event.content?.trim() ?? ''
+      if (!content) return
+      const date = event.date?.trim()
+      const hasDate = Boolean(date)
+      const rawImage =
+        typeof event.image_data === 'string'
+          ? event.image_data.trim()
+          : event.image_data ?? ''
+      const hasImage = Boolean(rawImage)
+      const payload: TimelineEvent = { content }
+      if (hasDate && date) {
+        payload.date = date
+      }
+      if (hasImage && typeof rawImage === 'string' && rawImage.length > 0) {
+        payload.image_data = rawImage
+      }
+      sanitized.push(payload)
+    })
+    return sanitized
   }, [])
 
   const convertToDrafts = useCallback((events: TimelineEvent[]): TimelineDraft[] => {
