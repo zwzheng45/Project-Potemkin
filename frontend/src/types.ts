@@ -16,10 +16,18 @@ export type Family = {
   members: FamilyMember[]
 }
 
+export type TimelineEvent = {
+  content: string
+  date?: string
+}
+
 export type MemorySnapshot = {
   stm: string[]
   ltm: string[]
   profile: string[]
+  important_events?: TimelineEvent[]
+  private?: string[]
+  public?: string[]
   user_stm?: string[]
 }
 

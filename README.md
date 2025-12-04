@@ -8,6 +8,7 @@ An on-chain family companion built on Unibase’s Membase memory layer. Every fa
 - **On-chain sovereignty (optional)**: With BNB Testnet creds, each family gets an on-chain task/space and the service agent buys access.
 - **Cross-device ready**: Hub sync + local persistence make memories reusable across devices or third-party agents.
 - **Multi-language output**: Pick a preferred language per family (e.g., `en/zh/es/fr/ja`); inputs can mix languages, outputs follow the family setting.
+- **Richer memory pools**: Short-term, shared long-term, important events (date-only, UI timeline only, not used in replies), user-private (never shared), and user-approved public memories; the model auto-classifies each turn.
 - **Accounts & auth**: Public-service ready with signup/login, bearer tokens, per-family members, and per-user chat logs (while sharing family memory).
 - **FastAPI out of the box**: Endpoints for family registration, chat, and memory snapshots.
 
@@ -102,6 +103,7 @@ curl http://localhost:8000/families \
 ## Memory & Profile Flow
 - STM: every turn stored in SQLite and into Chroma for retrieval.
 - LTM: every 16 STMs are summarized into LTM, and the family profile is refreshed.
+- Buckets: shared long-term + important events (timestamped for UI timeline only, not fed into reply prompts) + user-private + user-approved public memories; the agent classifies each turn automatically.
 - Storage: `~/.membase/<family_id>/sql.db` (dialogue) and `~/.membase/<family_id>/rag` (vector DB).
 - Hub sync: with `MEMBASE_AUTO_UPLOAD=true`, memories push to Membase Hub for cross-device reuse.
 

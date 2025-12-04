@@ -5,6 +5,7 @@
 ## 亮点
 - **家庭级独立 Agent**：`family_id` 作为终身身份，独立存储在 `~/.membase/<family_id>/…`（SQLite + Chroma）。
 - **自动长期记忆**：每 16 条短期对话自动汇总为长期记忆与家庭画像，可同步到 Hub。
+- **记忆分层**：短期 / 共享长期 / 重要事件（带日期，仅供前端时间轴，不进入回复上下文）/ 私密（仅本人）/ 公开（可给第三方），大模型自动分桶。
 - **链上主权（可选）**：配置 BNB Testnet 钱包后，为家庭创建链上空间，并为服务 Agent 购买权限。
 - **跨设备复用**：Hub 同步 + 本地持久化，便于在手机、网页或第三方 Agent 复用记忆。
 - **多语言**：家庭级 `language`（如 `en/zh/es/fr/ja`），输入可混合，输出遵循该语言。
@@ -102,6 +103,7 @@ curl http://localhost:8000/families \
 ## 记忆与画像流程
 - STM：每条对话写入 SQLite，并入 Chroma 便于检索。
 - LTM：每 16 条 STM 归纳为 LTM，同时更新家庭画像。
+- 记忆池：共享长期记忆、重要事件（带日期仅用于前端时间轴，不喂给模型）、私密（只属当前用户）、公开（用户愿意给第三方），大模型自动在聊天后归类。
 - 存储：`~/.membase/<family_id>/sql.db` 与 `~/.membase/<family_id>/rag`。
 - Hub 同步：`MEMBASE_AUTO_UPLOAD=true` 时推送到 Membase Hub。
 

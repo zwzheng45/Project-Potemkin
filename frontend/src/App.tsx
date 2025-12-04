@@ -32,6 +32,7 @@ import type {
   InviteLinkResponse,
   InviteMemberPayload,
   LoginPayload,
+  TimelineEvent,
   ProfileResponse,
   SignupPayload,
 } from './types'
@@ -124,6 +125,9 @@ type Copy = {
   activeContextLabel: string
   shortTermHeading: string
   longTermHeading: string
+  importantEventsHeading: string
+  privateHeading: string
+  publicHeading: string
   profileHeading: string
   profileEditButton: string
   profileEditTitle: string
@@ -146,6 +150,8 @@ type Copy = {
   conversationTabLabel: string
   fileManagementTabLabel: string
 }
+
+type MemoryEntry = string | TimelineEvent
 
 const translations = {
   en: {
@@ -238,10 +244,13 @@ const translations = {
     activeContextLabel: 'Active Context',
     shortTermHeading: 'Short-term Memory',
     longTermHeading: 'Long-term Memory',
-  profileHeading: 'Family Profile',
-  profileEditButton: 'Edit profile',
-  profileEditTitle: 'Personal profile',
-  profileNameLabel: 'Display name',
+    importantEventsHeading: 'Important Events',
+    privateHeading: 'Private (You Only)',
+    publicHeading: 'Public (3rd-Party OK)',
+    profileHeading: 'Family Profile',
+    profileEditButton: 'Edit profile',
+    profileEditTitle: 'Personal profile',
+    profileNameLabel: 'Display name',
   profileNameRequired: 'Please enter your display name',
   profileBioLabel: 'Bio / tagline',
   profileBioPlaceholder: 'Add a short line about yourself...',
@@ -348,10 +357,13 @@ const translations = {
     activeContextLabel: '当前上下文',
     shortTermHeading: '短期记忆',
     longTermHeading: '长期记忆',
-  profileHeading: '家庭画像',
-  profileEditButton: '编辑个人档案',
-  profileEditTitle: '个人资料',
-  profileNameLabel: '显示名称',
+    importantEventsHeading: '重要事件',
+    privateHeading: '私密记忆',
+    publicHeading: '公开记忆',
+    profileHeading: '家庭画像',
+    profileEditButton: '编辑个人档案',
+    profileEditTitle: '个人资料',
+    profileNameLabel: '显示名称',
   profileNameRequired: '请填写你的显示名称',
   profileBioLabel: '个性签名',
   profileBioPlaceholder: '写一句介绍自己的话……',
@@ -459,10 +471,13 @@ const translations = {
     activeContextLabel: 'Contexte actif',
     shortTermHeading: 'Mémoire court terme',
     longTermHeading: 'Mémoire long terme',
-  profileHeading: 'Profil familial',
-  profileEditButton: 'Modifier le profil',
-  profileEditTitle: 'Profil personnel',
-  profileNameLabel: 'Nom affiché',
+    importantEventsHeading: 'Événements importants',
+    privateHeading: 'Mémoire privée',
+    publicHeading: 'Mémoire publique',
+    profileHeading: 'Profil familial',
+    profileEditButton: 'Modifier le profil',
+    profileEditTitle: 'Profil personnel',
+    profileNameLabel: 'Nom affiché',
   profileNameRequired: 'Veuillez saisir votre nom affiché',
   profileBioLabel: 'Bio / slogan',
   profileBioPlaceholder: 'Ajoutez une courte description…',
@@ -570,10 +585,13 @@ const translations = {
     activeContextLabel: 'Aktiver Kontext',
     shortTermHeading: 'Kurzzeitgedächtnis',
     longTermHeading: 'Langzeitgedächtnis',
-  profileHeading: 'Familienprofil',
-  profileEditButton: 'Profil bearbeiten',
-  profileEditTitle: 'Persönliches Profil',
-  profileNameLabel: 'Anzeigename',
+    importantEventsHeading: 'Wichtige Ereignisse',
+    privateHeading: 'Private Erinnerungen',
+    publicHeading: 'Öffentliche Erinnerungen',
+    profileHeading: 'Familienprofil',
+    profileEditButton: 'Profil bearbeiten',
+    profileEditTitle: 'Persönliches Profil',
+    profileNameLabel: 'Anzeigename',
   profileNameRequired: 'Bitte gib deinen Anzeigenamen ein',
   profileBioLabel: 'Bio / Motto',
   profileBioPlaceholder: 'Schreibe einen kurzen Satz über dich…',
@@ -680,10 +698,13 @@ const translations = {
     activeContextLabel: 'アクティブなコンテキスト',
     shortTermHeading: '短期メモリー',
     longTermHeading: '長期メモリー',
-  profileHeading: '家族プロフィール',
-  profileEditButton: 'プロフィールを編集',
-  profileEditTitle: '個人プロフィール',
-  profileNameLabel: '表示名',
+    importantEventsHeading: '重要イベント',
+    privateHeading: 'プライベート記憶',
+    publicHeading: '公開記憶',
+    profileHeading: '家族プロフィール',
+    profileEditButton: 'プロフィールを編集',
+    profileEditTitle: '個人プロフィール',
+    profileNameLabel: '表示名',
   profileNameRequired: '表示名を入力してください',
   profileBioLabel: 'ひとこと / 自己紹介',
   profileBioPlaceholder: '自分について一言を書きましょう…',
@@ -1146,6 +1167,18 @@ function App() {
     {
       key: 'ltm',
       label: copy.longTermHeading,
+    },
+    {
+      key: 'important_events',
+      label: copy.importantEventsHeading,
+    },
+    {
+      key: 'private',
+      label: copy.privateHeading,
+    },
+    {
+      key: 'public',
+      label: copy.publicHeading,
     },
     {
       key: 'profile',
@@ -2494,7 +2527,10 @@ function App() {
                       {/* Snapshots Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {memorySections.map((section) => {
-                          const entries = currentMemory?.[section.key] ?? []
+                          const rawEntries = currentMemory?.[section.key]
+                          const entries: MemoryEntry[] = Array.isArray(rawEntries)
+                            ? (rawEntries as MemoryEntry[])
+                            : []
                           return (
                             <div
                               key={section.key}
@@ -2507,21 +2543,29 @@ function App() {
                               </div>
                               <div className="space-y-4">
                                 {entries.length ? (
-                                  entries.map((item: string, index: number) => (
-                                    <div
-                                      key={`${section.key}-${index}`}
-                                      className="rounded-xl border border-stone-100 bg-white px-6 py-5 shadow-sm"
-                                    >
-                                      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-3">
-                                        <span className="font-medium text-stone-400">#{index + 1}</span>
-                                        <span className="h-px w-6 bg-stone-100" />
-                                        <span>{section.label}</span>
-                                      </div>
+                                  entries.map((item: MemoryEntry, index: number) => {
+                                    const contentText =
+                                      typeof item === 'string'
+                                        ? item
+                                        : item.date
+                                          ? `${item.date} · ${item.content}`
+                                          : item.content
+                                    return (
+                                      <div
+                                        key={`${section.key}-${index}`}
+                                        className="rounded-xl border border-stone-100 bg-white px-6 py-5 shadow-sm"
+                                      >
+                                        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-stone-300 mb-3">
+                                          <span className="font-medium text-stone-400">#{index + 1}</span>
+                                          <span className="h-px w-6 bg-stone-100" />
+                                          <span>{section.label}</span>
+                                        </div>
                                       <p className="text-sm leading-relaxed text-stone-700 whitespace-pre-wrap font-mono text-xs">
-                                        {item}
+                                        {contentText}
                                       </p>
                                     </div>
-                                  ))
+                                    )
+                                  })
                                 ) : (
                                   <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-6 py-8 text-center text-xs uppercase tracking-[0.3em] text-stone-300">
                                     {copy.emptyMemoryLabel}
