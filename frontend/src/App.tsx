@@ -887,6 +887,26 @@ const markdownComponents: Components = {
       {children}
     </li>
   ),
+  strong: ({ node: _node, children, ...props }) => (
+    <strong className="font-semibold text-stone-900" {...props}>
+      {children}
+    </strong>
+  ),
+  em: ({ node: _node, children, ...props }) => (
+    <em className="italic text-stone-900" {...props}>
+      {children}
+    </em>
+  ),
+  del: ({ node: _node, children, ...props }) => (
+    <del className="text-stone-500 line-through decoration-stone-400" {...props}>
+      {children}
+    </del>
+  ),
+  u: ({ node: _node, children, ...props }) => (
+    <u className="underline underline-offset-2 decoration-stone-400" {...props}>
+      {children}
+    </u>
+  ),
   blockquote: ({ node: _node, children, ...props }) => (
     <blockquote
       className="mb-3 border-l-4 border-stone-200 bg-white/60 px-4 py-2 text-left italic text-stone-700 last:mb-0"
