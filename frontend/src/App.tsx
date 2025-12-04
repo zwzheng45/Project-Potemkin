@@ -1303,6 +1303,22 @@ function App() {
   const [dashboardView, setDashboardView] = useState<'chat' | 'memory'>('chat')
   const [language, setLanguage] = useState<SupportedLanguage>(() => getInitialLanguage())
   const [isLandingAtTop, setIsLandingAtTop] = useState(true)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+
+  const connectWallet = async () => {
+    const ethereum = (window as any).ethereum
+    if (typeof ethereum !== 'undefined') {
+      try {
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+        setWalletAddress(accounts[0])
+      } catch (error) {
+        console.error('User rejected the request or error occurred', error)
+      }
+    } else {
+      alert('Please install MetaMask or another Web3 wallet!')
+    }
+  }
+
   const chatEndRef = useRef<HTMLDivElement | null>(null)
 
   const formatDateInput = useCallback((value: string) => {
@@ -2248,7 +2264,7 @@ function App() {
           ) : null}
         </AnimatePresence>
         {view !== 'dashboard' && (view !== 'landing' || isLandingAtTop) && (
-          <div className="fixed right-6 top-2 sm:top-3 md:top-4 lg:top-5 z-30">
+          <div className="fixed right-6 top-2 sm:top-3 md:top-4 lg:top-5 z-30 flex items-center gap-3">
             <LanguageSelector
               language={language}
               label={copy.languageSelectorLabel}
@@ -2523,7 +2539,16 @@ function App() {
               <div className="mb-16 text-center">
                 <span className="text-[10px] tracking-[0.3em] uppercase text-stone-400 font-medium block mb-4">{copy.identitySelectionLabel}</span>
                 <h2 className="text-5xl font-display font-normal text-stone-900 italic mb-4">{copy.identitySelectionTitle}</h2>
-                <div className="w-12 h-px bg-stone-300 mx-auto" />
+                <div className="w-12 h-px bg-stone-300 mx-auto mb-8" />
+                <button
+                  type="button"
+                  onClick={connectWallet}
+                  className="rounded-full border border-stone-300 bg-white px-6 py-2 text-sm font-medium text-stone-600 shadow-sm transition-all hover:bg-stone-50 hover:text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-200 focus:ring-offset-2"
+                >
+                  {walletAddress
+                    ? `BNB Wallet Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                    : 'Connect BNB Wallet'}
+                </button>
               </div>
               {sessionUser && (
                 <motion.button
@@ -3086,7 +3111,7 @@ function App() {
                                                 <button
                                                   type="button"
                                                   onClick={() => handleEventImageRemove(index)}
-                                                  className="flex w-full items-center justify-center gap-2 border-t border-stone-200 bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.3em] text-stone-500 hover:text-rose-500"
+                                                  className="flex w-full items-center justify-center gap-2 border-t border-stone-200 bg-white/70 px-4 py-2 text-xs uppercase tracking-[0.2em] text-stone-500 hover:text-rose-500"
                                                 >
                                                   <Trash2 size={14} />
                                                   <span>{copy.importantEventsImageRemove}</span>
