@@ -1,6 +1,8 @@
 # On-Chain Family Companion AI (Unibase/Membase Demo)
 
-An on-chain family companion built on Unibase’s Membase memory layer. Every family owns its own agent, short-/long-term memory, and profile, plus optional BNB Testnet on-chain permissions. This project is fully in English, with per-family multi-language replies supported.
+An on-chain family companion built on Unibase’s Membase memory layer. Every family owns its own agent, short-/long-term memory, and profile, plus optional BNB Testnet on-chain permissions. This project is fully in English, with per-family multi-language replies supported.   
+
+Try it out at: [https://pjkt-potemkin.zzw.moe/](https://pjkt-potemkin.zzw.moe/)
 
 ## Highlights
 - **Family-scoped agents**: `family_id` is a family’s lifelong identity with isolated SQLite + Chroma memory at `~/.membase/<family_id>/…`.
