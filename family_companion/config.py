@@ -22,6 +22,8 @@ class Settings:
     membase_account: Optional[str] = os.getenv("MEMBASE_ACCOUNT")
     membase_secret_key: Optional[str] = os.getenv("MEMBASE_SECRET_KEY")
     membase_id: Optional[str] = os.getenv("MEMBASE_ID")
+    log_dir: str = os.getenv("LOG_DIR", os.path.expanduser("~/.membase/family_agents/logs"))
+    log_level: str = os.getenv("LOG_LEVEL", "DEBUG")
     media_dir: str = os.getenv(
         "MEDIA_DIR", os.path.expanduser("~/.membase/family_agents/uploads")
     )

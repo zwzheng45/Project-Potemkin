@@ -2,6 +2,7 @@ import io
 import logging
 import secrets
 import time
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict, List
 
@@ -38,8 +39,40 @@ from family_companion.state import FamilyStateStore
 from family_companion.memory import FamilyMemoryManager
 from family_companion.chain import FamilyChainAdapter
 
+
+def configure_logging() -> None:
+    """Route all service logs to stdout and a rotating file for debugging."""
+    log_dir = Path(settings.log_dir).expanduser()
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "family_companion.log"
+
+    level_name = (settings.log_level or "DEBUG").upper()
+    log_level = getattr(logging, level_name, logging.DEBUG)
+    handlers = [
+        logging.StreamHandler(),
+        RotatingFileHandler(
+            log_file,
+            maxBytes=5 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        ),
+    ]
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=handlers,
+        force=True,
+    )
+    logging.captureWarnings(True)
+    for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        uvicorn_logger = logging.getLogger(name)
+        uvicorn_logger.handlers.clear()
+        uvicorn_logger.setLevel(log_level)
+        uvicorn_logger.propagate = True
+
+
+configure_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 state_store = FamilyStateStore()
 service = FamilyService(
